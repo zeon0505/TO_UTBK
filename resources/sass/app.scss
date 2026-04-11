@@ -1,0 +1,357 @@
+// Fonts
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap');
+
+// Variables
+$primary: #6366f1; // Indigo 500
+$primary-hover: #4f46e5;
+$secondary: #a855f7; // Purple 500
+$success: #10b981; // Emerald 500
+$info: #3b82f6; // Blue 500
+$danger: #ef4444; // Red 500
+$warning: #f59e0b; // Amber 500
+
+$body-bg: #f8fafc;
+$font-family-sans-serif: "Inter", sans-serif;
+$headings-font-family: "Outfit", sans-serif;
+
+// Bootstrap
+@import "bootstrap/scss/bootstrap";
+
+// Icons
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+// --- Premium Custom Styles ---
+
+body {
+    background-color: $body-bg;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+    color: #334155;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: $headings-font-family;
+    color: #1e293b;
+}
+
+#app {
+    display: flex;
+    min-height: 100vh;
+}
+
+#sidebar {
+    width: 280px;
+    height: 100vh;
+    background: #ffffff;
+    position: fixed;
+    z-index: 100;
+    transition: all .4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.02);
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+#main {
+    margin-left: 280px;
+    width: calc(100% - 280px);
+    background-color: $body-bg;
+    min-height: 100vh;
+    transition: all .4s ease;
+}
+
+// Fullscreen Exam mode
+.sidebar-hidden {
+    #sidebar {
+        display: none !important;
+    }
+    #main {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+    header {
+        display: none !important;
+    }
+    #main-content {
+        padding-top: 2rem;
+    }
+}
+
+.sidebar-wrapper {
+    width: 280px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 2.5rem 2rem;
+    .logo h3 {
+        background: linear-gradient(135deg, $primary, $secondary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 1.5rem;
+        letter-spacing: -0.5px;
+        font-weight: 800;
+    }
+}
+
+.sidebar-menu {
+    flex: 1;
+    padding: 0 1.2rem;
+}
+
+ul.menu {
+    list-style: none;
+    padding: 0;
+
+    .sidebar-title {
+        color: #94a3b8;
+        font-weight: 600;
+        font-size: 0.75rem;
+        padding-left: 1rem;
+        margin-top: 1.5rem;
+        margin-bottom: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+}
+
+.sidebar-item {
+    margin-bottom: 0.3rem;
+
+    .sidebar-link {
+        display: flex;
+        align-items: center;
+        padding: 0.85rem 1.2rem;
+        text-decoration: none;
+        color: #64748b;
+        font-weight: 500;
+        border-radius: 12px;
+        transition: all 0.25s ease;
+
+        i {
+            font-size: 1.25rem;
+            margin-right: 12px;
+            transition: transform 0.25s ease;
+        }
+
+        &:hover {
+            color: $primary;
+            background-color: rgba($primary, 0.05);
+            i {
+                transform: translateX(3px);
+            }
+        }
+    }
+
+    &.active {
+        .sidebar-link {
+            background: linear-gradient(135deg, $primary, $secondary);
+            color: #fff;
+            box-shadow: 0 10px 20px rgba($primary, 0.2);
+
+            i {
+                color: #fff;
+            }
+
+            &:hover {
+                color: #fff;
+            }
+        }
+    }
+}
+
+// Master Card Styles
+.card {
+    border: none;
+    border-radius: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+    background: #ffffff;
+
+    .card-header {
+        background: transparent;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+        padding: 1.5rem 2rem;
+        h4 {
+            font-weight: 700;
+            margin-bottom: 0;
+        }
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    &.hover-up:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    }
+}
+
+// Custom Progress Bar
+.progress {
+    height: 12px;
+    background-color: #f1f5f9;
+    border-radius: 100px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    
+    .progress-bar {
+        background: linear-gradient(90deg, $primary, $secondary);
+        border-radius: 100px;
+    }
+}
+
+// Buttons
+.btn {
+    padding: 0.75rem 1.75rem;
+    border-radius: 14px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: $headings-font-family;
+
+    &.btn-primary {
+        background: linear-gradient(135deg, $primary, $secondary);
+        border: none;
+        color: white;
+        box-shadow: 0 4px 12px rgba($primary, 0.3);
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba($primary, 0.4);
+            filter: brightness(1.1);
+        }
+    }
+    
+    &.btn-secondary {
+        background-color: #f1f5f9;
+        border: none;
+        color: #475569;
+        &:hover {
+            background-color: #e2e8f0;
+            color: #1e293b;
+        }
+    }
+}
+
+// Option selection (Exam)
+.form-check.option-glass {
+    border: 2px solid #f1f5f9;
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem 1.25rem 3rem;
+    margin-bottom: 1rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+
+    &:hover {
+        border-color: #e2e8f0;
+        background-color: #f8fafc;
+    }
+
+    &.border-primary {
+        border-color: $primary !important;
+        background-color: rgba($primary, 0.04) !important;
+        box-shadow: 0 4px 12px rgba($primary, 0.08);
+    }
+
+    .form-check-input {
+        width: 1.5em;
+        height: 1.5em;
+        margin-top: 0.15em;
+        margin-left: -2em;
+        cursor: pointer;
+        &:checked {
+            background-color: $primary;
+            border-color: $primary;
+        }
+    }
+}
+
+// Header / Navbar
+header {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+// Dark Mode Variables
+body.theme-dark {
+    background-color: #0b0e14 !important;
+    color: #f1f5f9;
+
+    #main {
+        background-color: #0b0e14 !important;
+    }
+
+    .card {
+        background-color: #161c24 !important;
+        border: 1px solid #252f3d !important;
+        color: #f1f5f9 !important;
+    }
+
+    header {
+        background-color: #161c24 !important;
+        border-bottom: 1px solid #252f3d !important;
+    }
+
+    .sidebar-wrapper {
+        background-color: #161c24 !important;
+        border-right: 1px solid #252f3d !important;
+    }
+
+    .text-muted { color: #919eab !important; }
+    .text-gray-600 { color: #f1f5f9 !important; }
+    .text-gray-800 { color: #ffffff !important; }
+    .bg-white { background-color: #161c24 !important; }
+    
+    .sidebar-link { 
+        color: #919eab !important; 
+        &:hover { background-color: rgba(99, 102, 241, 0.08) !important; color: #6366f1 !important; }
+    }
+    
+    .sidebar-item.active .sidebar-link {
+        background-color: #6366f1 !important;
+        color: #fff !important;
+    }
+
+    .table { color: #f1f5f9 !important; }
+    .table thead tr th { color: #919eab !important; border-bottom: 1px solid #252f3d !important; }
+    .table td { border-bottom: 1px solid #252f3d !important; }
+
+    .timer-display { background: #252f3d; border-color: #6366f1; color: #fff; }
+    .option-glass { background: #1c252e; border-color: #2b3844; color: #fff; }
+    .option-glass:hover { background: #252f3d; }
+    
+    .stats-icon {
+        background-color: #252f3d !important;
+    }
+}
+
+// Stats Widget
+.stats-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    
+    &.purple { background-color: rgba($secondary, 0.1); color: $secondary; }
+    &.blue { background-color: rgba($info, 0.1); color: $info; }
+    &.green { background-color: rgba($success, 0.1); color: $success; }
+    &.red { background-color: rgba($danger, 0.1); color: $danger; }
+}
+
+// Timer Display
+.timer-display {
+    background: #ffffff;
+    padding: 0.75rem 2rem;
+    border-radius: 100px;
+    font-size: 1.5rem;
+    font-family: $headings-font-family;
+    display: flex;
+    align-items: center;
+    border: 2px solid $primary;
+    color: $primary;
+}
