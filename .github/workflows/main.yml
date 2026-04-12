@@ -11,16 +11,6 @@ jobs:
       - name: 🚚 Get latest code
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup PHP 8.3
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          extensions: mbstring, bcmath, pdo, pdo_mysql, xml, curl, zip, fileinfo
-          coverage: none
-
-      - name: 📦 Install Composer Dependencies
-        run: composer update --no-interaction --prefer-dist --optimize-autoloader --no-dev --ignore-platform-req=php
-
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -84,6 +74,7 @@ jobs:
             **/.git*
             **/.git*/**
             **/node_modules/**
+            **/vendor/**
             **/tests/**
             **/.editorconfig
             **/.phpunit*
@@ -93,12 +84,8 @@ jobs:
             **/.vscode/**
             **/.idea/**
             **/scratch/**
-            **/vendor/*/tests/**
-            **/vendor/*/test/**
-            **/vendor/*/Test/**
-            **/vendor/*/Tests/**
-            **/vendor/*/docs/**
-            **/vendor/*/doc/**
-            **/vendor/*/.github/**
-            **/vendor/*/examples/**
-            **/vendor/*/demo/**
+
+      - name: ⚡ Trigger post-deploy script on server
+        run: |
+          echo "Triggering deploy.php on server..."
+          curl -f --max-time 120 "${{ secrets.APP_URL }}/deploy.php?token=${{ secrets.DEPLOY_TOKEN }}" || echo "Warning: deploy.php trigger failed or timed out"
