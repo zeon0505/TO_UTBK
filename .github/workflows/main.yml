@@ -77,7 +77,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           port: 21
-          timeout: 120000
+          timeout: 600000
           server-dir: public_html/
           dangerous-clean-slate: false
           exclude: |
@@ -93,3 +93,12 @@ jobs:
             **/.vscode/**
             **/.idea/**
             **/scratch/**
+            **/vendor/*/tests/**
+            **/vendor/*/test/**
+            **/vendor/*/Test/**
+            **/vendor/*/Tests/**
+            **/vendor/*/docs/**
+            **/vendor/*/doc/**
+            **/vendor/*/.github/**
+            **/vendor/*/examples/**
+            **/vendor/*/demo/**
