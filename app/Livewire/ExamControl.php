@@ -99,22 +99,22 @@ class ExamControl extends Component
         $this->dispatch('question-loaded', duration: $this->currentQuestion->timer_per_question ?? 60);
     }
 
-    public function goToQuestion($index)
+    public function goToQuestion($index, $remainingTime = 0)
     {
-        $this->saveAnswer();
+        $this->saveAnswer($remainingTime);
         $this->currentQuestionIndex = $index;
         $this->loadQuestion();
     }
 
-    public function toggleDoubtful()
+    public function toggleDoubtful($remainingTime = 0)
     {
         $this->isDoubtful = !$this->isDoubtful;
-        $this->saveAnswer();
+        $this->saveAnswer($remainingTime);
     }
 
-    public function nextQuestion()
+    public function nextQuestion($remainingTime = 0)
     {
-        $this->saveAnswer();
+        $this->saveAnswer($remainingTime);
 
         if ($this->currentQuestionIndex < count($this->questions) - 1) {
             $this->currentQuestionIndex++;
@@ -124,9 +124,9 @@ class ExamControl extends Component
         }
     }
 
-    public function previousQuestion()
+    public function previousQuestion($remainingTime = 0)
     {
-        $this->saveAnswer();
+        $this->saveAnswer($remainingTime);
 
         if ($this->currentQuestionIndex > 0) {
             $this->currentQuestionIndex--;
@@ -134,7 +134,7 @@ class ExamControl extends Component
         }
     }
 
-    public function saveAnswer()
+    public function saveAnswer($remainingTime = 0)
     {
         if (!$this->currentQuestion) return;
 
@@ -142,8 +142,16 @@ class ExamControl extends Component
         if ($this->selectedOptionId) {
             $option = Option::find($this->selectedOptionId);
             if ($option) {
-                $point = $option->point;
+                $basePoint = ($option->point > 0) ? $option->point : 2;
+                
+                // Dynamic Timer Bonus: Answering faster gives more points
+                // Max bonus 20% if answered instantly
+                $totalTime = $this->currentQuestion->timer_per_question ?? 60;
+                $timeBonus = ($remainingTime / $totalTime) * ($basePoint * 0.2);
+                $point = $basePoint + $timeBonus;
             }
+        } else {
+            $point = 0;
         }
 
         UserAnswer::updateOrCreate([
@@ -151,7 +159,7 @@ class ExamControl extends Component
             'question_id' => $this->currentQuestion->id,
         ], [
             'option_id' => $this->selectedOptionId,
-            'remaining_time' => 0,
+            'remaining_time' => $remainingTime,
             'score_obtained' => $point,
             'is_doubtful' => $this->isDoubtful,
         ]);
@@ -159,15 +167,15 @@ class ExamControl extends Component
         $this->updateTotalScore();
     }
 
-    public function moveToNextSection()
+    public function moveToNextSection($remainingTime = 0)
     {
-        $this->saveAnswer();
+        $this->saveAnswer($remainingTime);
 
         if ($this->currentSubTestIndex < count($this->exam->subTests) - 1) {
             $this->currentSubTestIndex++;
             $this->loadSubTest();
         } else {
-            $this->finishExam();
+            $this->finishExam($remainingTime);
         }
     }
 
@@ -177,9 +185,9 @@ class ExamControl extends Component
         $this->result->update(['total_score' => $total]);
     }
 
-    public function finishExam()
+    public function finishExam($remainingTime = 0)
     {
-        $this->saveAnswer();
+        $this->saveAnswer($remainingTime);
         $this->result->update(['finished_at' => now()]);
         $this->isFinished = true;
     }
