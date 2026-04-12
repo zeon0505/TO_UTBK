@@ -19,7 +19,7 @@ jobs:
           coverage: none
 
       - name: 📦 Install Composer Dependencies
-        run: composer update --no-interaction --prefer-dist --optimize-autoloader --no-dev
+        run: composer update --no-interaction --prefer-dist --optimize-autoloader --no-dev --ignore-platform-req=php
 
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v3
