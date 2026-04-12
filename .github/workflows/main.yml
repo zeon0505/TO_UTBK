@@ -59,6 +59,9 @@ jobs:
           VITE_APP_NAME=UTBK
           ENVEOF
 
+      - name: 🧹 Clean up before deploy
+        run: rm -rf node_modules
+
       - name: 🚀 Deploy files via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -69,24 +72,9 @@ jobs:
           source: "."
           target: /home/fpyogamy/domains/tryout.fpyoga.my.id/public_html
           rm: false
-          strip_components: 0
           overwrite: true
           timeout: 600s
           command_timeout: 30m
-          exclude: |
-            .git
-            .github
-            node_modules
-            vendor
-            tests
-            .editorconfig
-            .phpunit*
-            phpunit.xml
-            README.md
-            Homestead.*
-            .vscode
-            .idea
-            scratch
 
       - name: 🔧 Post-deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
