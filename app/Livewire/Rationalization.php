@@ -33,6 +33,7 @@ class Rationalization extends Component
                     $totalQuestions = $answers->count();
                     $correctAnswers = $answers->filter(fn($ans) => $ans->option && ($ans->option->point ?? 0) > 0)->count();
                     return [
+                        'score' => $answers->sum(fn($ans) => $ans->option->point ?? 0),
                         'correct_count' => $correctAnswers,
                         'total' => $totalQuestions,
                         'percentage' => round(($totalQuestions > 0) ? ($correctAnswers / $totalQuestions) * 100 : 0),
