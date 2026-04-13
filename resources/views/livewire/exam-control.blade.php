@@ -1,11 +1,12 @@
 <div x-data="{ 
-    timeLeft: 0,
-    timer: null,
+    sectionTimeLeft: 0,
+    questionTimeLeft: 0,
+    sectionTimer: null,
+    questionTimer: null,
     violationCount: 0,
     maxViolations: 3,
     warningPlayed: false,
     playSFX(type) {
-        // Run in timeout to prevent blocking the main Livewire/Alpine thread
         setTimeout(() => {
             const sounds = {
                 start: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
@@ -15,97 +16,56 @@
             };
             try {
                 const audio = new Audio(sounds[type]);
-                audio.volume = 0.5;
-                const playPromise = audio.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(() => { /* Silent fail */ });
-                }
-            } catch (e) {
-                console.warn('SFX failed but continuing...');
-            }
+                audio.play().catch(() => {});
+            } catch (e) {}
         }, 0);
     },
-    showScratchpad: false,
-    isDrawing: false,
-    ctx: null,
-    initCanvas() {
-        const canvas = this.$refs.scratchCanvas;
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        this.ctx = canvas.getContext('2d');
-        this.ctx.lineWidth = 2;
-        this.ctx.lineCap = 'round';
-        this.ctx.strokeStyle = '#2d3436';
-    },
-    startDrawing(e) {
-        this.isDrawing = true;
-        this.draw(e);
-    },
-    stopDrawing() {
-        this.isDrawing = false;
-        this.ctx.beginPath();
-    },
-    draw(e) {
-        if (!this.isDrawing) return;
-        
-        const rect = this.$refs.scratchCanvas.getBoundingClientRect();
-        const x = (e.clientX || e.touches[0].clientX) - rect.left;
-        const y = (e.clientY || e.touches[0].clientY) - rect.top;
-
-        this.ctx.lineTo(x, y);
-        this.ctx.stroke();
-        this.ctx.beginPath();
-        this.ctx.moveTo(x, y);
-    },
-    clearCanvas() {
-        this.ctx.clearRect(0, 0, this.$refs.scratchCanvas.width, this.$refs.scratchCanvas.height);
-    },
-    startTimer(duration) {
-        this.timeLeft = duration;
-        this.warningPlayed = false;
-        if (this.timer) clearInterval(this.timer);
-        this.timer = setInterval(() => {
-            if (this.timeLeft > 0) {
-                this.timeLeft--;
-                // Warning sound at 15 seconds left
-                if (this.timeLeft === 15 && !this.warningPlayed) {
-                    this.playSFX('warning');
-                    this.warningPlayed = true;
-                }
+    startSectionTimer(duration) {
+        this.sectionTimeLeft = duration;
+        if (this.sectionTimer) clearInterval(this.sectionTimer);
+        this.sectionTimer = setInterval(() => {
+            if (this.sectionTimeLeft > 0) {
+                this.sectionTimeLeft--;
             } else {
-                clearInterval(this.timer);
-                alert('Waktu untuk soal ini telah HABIS! Sistem akan memindah Anda ke soal berikutnya.');
+                clearInterval(this.sectionTimer);
+                clearInterval(this.questionTimer);
+                alert('Waktu SUB-TES telah habis!');
+                $wire.moveToNextSection();
+            }
+        }, 1000);
+    },
+    startQuestionTimer(duration) {
+        this.questionTimeLeft = duration;
+        if (this.questionTimer) clearInterval(this.questionTimer);
+        this.questionTimer = setInterval(() => {
+            if (this.questionTimeLeft > 1) {
+                this.questionTimeLeft--;
+            } else {
+                clearInterval(this.questionTimer);
+                this.playSFX('warning');
+                // Auto next soal
                 $wire.nextQuestion();
             }
         }, 1000);
-        
-        // Anti-Cheat: Disable Right Click & Copy
+    },
+    initAntiCheat() {
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.addEventListener('copy', e => e.preventDefault());
-        document.addEventListener('keydown', e => {
-            if (e.ctrlKey && (e.key === 'c' || e.key === 'u' || e.key === 'i' || e.key === 'j')) {
-                e.preventDefault();
-                alert('Tindakan ini dilarang selama ujian!');
-            }
-        });
-
-        // Anti-Cheat: Tab Switching Detection (Optional - Commented for better UX during testing)
-        /*
         window.onblur = () => {
             if (!this.showInstructions && !this.isFinished) {
                 this.violationCount++;
                 if (this.violationCount >= this.maxViolations) {
-                    alert('Anda terlalu sering meninggalkan halaman! Ujian akan dikumpulkan otomatis.');
+                    alert('PELANGGARAN: Terlalu sering meninggalkan halaman!');
                     $wire.finishExam();
                 } else {
-                    alert('Peringatan: Dilarang mengganti tab atau meninggalkan halaman ujian! (' + this.violationCount + '/' + this.maxViolations + ')');
+                    alert('Peringatan: dilarang pindah tab! (' + this.violationCount + '/' + this.maxViolations + ')');
                 }
             }
         };
-        */
     }
 }" 
-x-on:question-loaded.window="startTimer($event.detail.duration)"
+x-on:start-section-timer.window="startSectionTimer($event.detail.duration); initAntiCheat()"
+x-on:question-loaded.window="startQuestionTimer($event.detail.duration)"
 x-on:play-sfx.window="playSFX($event.detail.type)"
 class="container-fluid no-select">
 
@@ -187,10 +147,14 @@ class="container-fluid no-select">
                 <h4 class="mb-0 fw-bold">{{ $exam->title }}</h4>
                 <p class="text-muted small mb-0">{{ $currentSubTest->title }}</p>
             </div>
-            <div class="col-md-4 text-center d-flex justify-content-center">
-                <div class="timer-display shadow-sm">
+            <div class="col-md-4 text-center d-flex flex-column align-items-center">
+                <div class="timer-display shadow-sm mb-1 bg-white">
+                    <small class="text-muted d-block" style="font-size: 0.6rem; line-height: 1;">SISA WAKTU BAB</small>
                     <i class="bi bi-clock-fill text-primary me-2"></i>
-                    <span class="fw-bold" x-text="Math.floor(timeLeft / 60) + ':' + (timeLeft % 60).toString().padStart(2, '0')"></span>
+                    <span class="fw-bold" x-text="Math.floor(sectionTimeLeft / 60) + ':' + (sectionTimeLeft % 60).toString().padStart(2, '0')"></span>
+                </div>
+                <div class="badge bg-warning text-dark shadow-sm">
+                    <i class="bi bi-hourglass-split me-1"></i> Waktu Soal: <span x-text="questionTimeLeft"></span>s
                 </div>
             </div>
             <div class="col-md-4 text-end">

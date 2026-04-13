@@ -62,7 +62,7 @@ class ExamControl extends Component
     public function loadSubTest()
     {
         if ($this->exam->subTests->isEmpty()) {
-            session()->flash('error', 'Tryout ini belum memiliki Sub-tes (bab).');
+            session()->flash('error', 'Tryout ini belum memiliki Sub-tes.');
             return $this->redirect('/dashboard', navigate: true);
         }
 
@@ -70,13 +70,19 @@ class ExamControl extends Component
         $this->questions = $this->currentSubTest->questions;
         
         if ($this->questions->isEmpty()) {
-            session()->flash('error', 'Tryout ini belum memiliki soal. Silakan hubungi admin.');
+            session()->flash('error', 'Sub-tes ini belum memiliki soal.');
             return $this->redirect('/dashboard', navigate: true);
         }
 
         $this->currentQuestionIndex = 0;
         
+        // Timer Sub-Test (in seconds)
+        $this->sectionTimeLeft = ($this->currentSubTest->duration ?? 30) * 60;
+
         $this->loadQuestion();
+        
+        // Dispatch to frontend to start central timer
+        $this->dispatch('start-section-timer', duration: $this->sectionTimeLeft);
     }
 
     public function loadQuestion()
@@ -84,49 +90,55 @@ class ExamControl extends Component
         if ($this->questions->isEmpty()) return;
         
         $this->currentQuestion = $this->questions[$this->currentQuestionIndex];
-        $this->selectedOptionId = null;
-        $this->isDoubtful = false;
-
+        
         $existingAnswer = UserAnswer::where('result_id', $this->result->id)
             ->where('question_id', $this->currentQuestion->id)
             ->first();
 
         if ($existingAnswer) {
             $this->selectedOptionId = $existingAnswer->option_id;
-            $this->isDoubtful = $existingAnswer->is_doubtful;
+            $this->isDoubtful = $existingAnswer->is_doubtful ?? false;
+        } else {
+            $this->selectedOptionId = null;
+            $this->isDoubtful = false;
         }
 
-        $this->dispatch('question-loaded', duration: $this->currentQuestion->timer_per_question ?? 60);
+        // Paksa Timer per-soal (60 detik)
+        $this->dispatch('question-loaded', duration: 60);
     }
 
-    public function goToQuestion($index, $remainingTime = 0)
+    public function selectOption($optionId)
     {
-        $this->saveAnswer($remainingTime);
+        $this->selectedOptionId = $optionId;
+        $this->saveAnswer();
+    }
+
+    public function toggleDoubtful()
+    {
+        $this->isDoubtful = !$this->isDoubtful;
+        $this->saveAnswer();
+    }
+
+    public function goToQuestion($index)
+    {
+        $this->saveAnswer();
         $this->currentQuestionIndex = $index;
         $this->loadQuestion();
     }
 
-    public function toggleDoubtful($remainingTime = 0)
+    public function nextQuestion()
     {
-        $this->isDoubtful = !$this->isDoubtful;
-        $this->saveAnswer($remainingTime);
-    }
-
-    public function nextQuestion($remainingTime = 0)
-    {
-        $this->saveAnswer($remainingTime);
+        $this->saveAnswer();
 
         if ($this->currentQuestionIndex < count($this->questions) - 1) {
             $this->currentQuestionIndex++;
             $this->loadQuestion();
-        } else {
-            $this->moveToNextSection();
         }
     }
 
-    public function previousQuestion($remainingTime = 0)
+    public function previousQuestion()
     {
-        $this->saveAnswer($remainingTime);
+        $this->saveAnswer();
 
         if ($this->currentQuestionIndex > 0) {
             $this->currentQuestionIndex--;
@@ -134,48 +146,28 @@ class ExamControl extends Component
         }
     }
 
-    public function saveAnswer($remainingTime = 0)
+    public function saveAnswer()
     {
         if (!$this->currentQuestion) return;
-
-        $point = 0;
-        if ($this->selectedOptionId) {
-            $option = Option::find($this->selectedOptionId);
-            if ($option) {
-                $basePoint = ($option->point > 0) ? $option->point : 2;
-                
-                // Dynamic Timer Bonus: Answering faster gives more points
-                // Max bonus 20% if answered instantly
-                $totalTime = $this->currentQuestion->timer_per_question ?? 60;
-                $timeBonus = ($remainingTime / $totalTime) * ($basePoint * 0.2);
-                $point = $basePoint + $timeBonus;
-            }
-        } else {
-            $point = 0;
-        }
 
         UserAnswer::updateOrCreate([
             'result_id' => $this->result->id,
             'question_id' => $this->currentQuestion->id,
         ], [
             'option_id' => $this->selectedOptionId,
-            'remaining_time' => $remainingTime,
-            'score_obtained' => $point,
             'is_doubtful' => $this->isDoubtful,
         ]);
-
-        $this->updateTotalScore();
     }
 
-    public function moveToNextSection($remainingTime = 0)
+    public function moveToNextSection()
     {
-        $this->saveAnswer($remainingTime);
+        $this->saveAnswer();
 
         if ($this->currentSubTestIndex < count($this->exam->subTests) - 1) {
             $this->currentSubTestIndex++;
             $this->loadSubTest();
         } else {
-            $this->finishExam($remainingTime);
+            $this->finishExam();
         }
     }
 
