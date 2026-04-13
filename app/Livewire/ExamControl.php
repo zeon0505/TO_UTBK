@@ -197,8 +197,19 @@ class ExamControl extends Component
         
         $this->result->update(['section_data' => $data]);
         
+        // Cek Batas Pelanggaran (Maksimal 2 kali)
+        $totalViolations = 0;
+        foreach ($data as $sec) {
+            $totalViolations += ($sec['violations'] ?? 0);
+        }
+
+        if ($totalViolations >= 2) {
+            session()->flash('error', 'UJIAN DIHENTIKAN OTOMATIS: Terdeteksi pelanggaran berulang (pindah-pindah tab).');
+            return $this->finishExam();
+        }
+
         // Log secara diam-diam di sisi server
-        Log::info("Violation recorded for user ".Auth::id()." on subtest ".$sectionId.". Total: ".($violations + 1));
+        Log::info("Violation recorded for user ".Auth::id()." on subtest ".$sectionId.". Total: ".$totalViolations);
     }
 
     public function nextQuestion()
