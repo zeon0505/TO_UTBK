@@ -7,9 +7,12 @@ use App\Models\SubTest;
 use App\Models\Question;
 use App\Models\Option;
 use Illuminate\Support\Facades\Http;
+use Livewire\WithFileUploads;
 
 class QuestionGenerator extends Component
 {
+    use WithFileUploads;
+
     public $topic = '';
     public $difficulty = 'Sedang';
     public $selectedSubTest = '';
@@ -19,11 +22,84 @@ class QuestionGenerator extends Component
     public $manualWeight = 1.0; 
     public $isGenerating = false;
     public $mode = 'manual'; 
+    public $scannedImage;
 
     public function setMode($mode)
     {
         $this->mode = $mode;
         $this->generatedQuestions = [];
+    }
+
+    public function updatedScannedImage()
+    {
+        $this->processOCR();
+    }
+
+    public function processOCR()
+    {
+        if (!$this->scannedImage) return;
+
+        $this->validate([
+            'scannedImage' => 'mimes:jpeg,png,jpg,pdf|max:10240', // Max 10MB
+        ]);
+
+        $this->isGenerating = true;
+
+        try {
+            $imagePath = $this->scannedImage->getRealPath();
+            $fileData = base64_encode(file_get_contents($imagePath));
+            $mimeType = $this->scannedImage->getMimeType();
+
+            // Kirim ke AI (Contoh menggunakan Gemini Pro Vision atau Vision API)
+            // Karena kita butuh AI yang paham Gambar, kita gunakan model Vision
+            $apiKey = env('GEMINI_API_KEY'); 
+            
+            $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                ['text' => "Ekstrak SELURUH soal dari dokumen/gambar ini (bisa lebih dari satu soal). 
+                                JIKA ada simbol matematika, tuliskan dengan format yang jelas. 
+                                FORMAT OUTPUT UNTUK SETIAP SOAL HARUS SEPERTI INI (Pisahkan tiap soal dengan DOUBLE ENTER):
+                                [Teks Soal]
+                                A. Pilihan 1
+                                B. Pilihan 2
+                                C. Pilihan 3
+                                D. Pilihan 4
+                                E. Pilihan 5
+                                * [Jawaban Benar]
+                                Pembahasan: [Teks Pembahasan]
+                                Poin: 5"],
+                                [
+                                    'inline_data' => [
+                                        'mime_type' => $mimeType,
+                                        'data' => $fileData
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]);
+
+            if ($response->successful()) {
+                $result = $response->json();
+                $textResult = $result['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                
+                // Masukkan hasil ke bulkText untuk diedit/dicek admin
+                $this->bulkText .= ($this->bulkText ? "\n\n" : "") . trim($textResult);
+                $this->mode = 'manual'; // Pindahkan ke tab manual agar teks terlihat
+                session()->flash('success', 'Gambar berhasil di-scan oleh AI!');
+            } else {
+                throw new \Exception('AI gagal memproses gambar. Pastikan API KEY valid.');
+            }
+
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error Scan: ' . $e->getMessage());
+        }
+
+        $this->isGenerating = false;
+        $this->scannedImage = null; // Reset upload
     }
 
     public function saveManual()

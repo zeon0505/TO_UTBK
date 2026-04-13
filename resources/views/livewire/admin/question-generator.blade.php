@@ -70,6 +70,26 @@
                                     - Tetap gunakan <b>*</b> untuk jawaban yang benar (Skor Standar).
                                 </p>
                             </div>
+
+                            <!-- Magic Scan (OCR) -->
+                            <div class="card border-0 bg-primary bg-opacity-10 mb-4 rounded-4 overflow-hidden">
+                                <div class="card-body p-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-camera-fill me-1"></i> Magic Scan (Foto/PDF)</h6>
+                                            <small class="text-muted" style="font-size: 0.7rem;">Upload Foto atau PDF soal, AI akan mengetiknya.</small>
+                                        </div>
+                                        <label for="scannedImage" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm mb-0">
+                                            <i class="bi bi-upload me-1"></i> Pilih File
+                                            <input type="file" id="scannedImage" wire:model.live="scannedImage" class="d-none" accept="image/*,.pdf">
+                                        </label>
+                                    </div>
+                                    <div wire:loading wire:target="scannedImage" class="mt-2 text-primary small fw-bold">
+                                        <div class="spinner-border spinner-border-sm me-1"></div> Sedang Membaca Gambar...
+                                    </div>
+                                </div>
+                            </div>
+
                             <form wire:submit.prevent="saveManual">
                                 <div class="row mb-3">
                                     <div class="col-6">
