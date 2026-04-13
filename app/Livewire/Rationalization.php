@@ -12,6 +12,7 @@ class Rationalization extends Component
     public $latestResult;
     public $recommendations = [];
     public $aiInsight = "";
+    public $subtestStats = [];
 
     public function mount()
     {
