@@ -52,10 +52,10 @@ class QuestionGenerator extends Component
 
             $apiKey = env('GEMINI_API_KEY'); 
 
-            // Gunakan v1beta dengan model -latest agar lebih fleksibel
+            // Menggunakan gemini-pro-vision (paling stabil untuk Vision 1.0)
             $response = Http::timeout(120)
                 ->withHeaders(['Content-Type' => 'application/json'])
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={$apiKey}", [
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key={$apiKey}", [
                     'contents' => [
                         [
                             'parts' => [
