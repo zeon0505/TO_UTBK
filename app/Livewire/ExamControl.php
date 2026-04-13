@@ -78,23 +78,51 @@ class ExamControl extends Component
 
         $this->currentQuestionIndex = 0;
         
-        // --- PERBAIKAN BUG TIMER ---
-        $data = $this->result->section_data ?? [];
-        $sectionId = (string) $this->currentSubTest->id;
-        $totalMinutes = $this->currentSubTest->duration ?? 30;
-        
-        if (isset($data[$sectionId]['started_at'])) {
-            // Jika sudah pernah dimulai, hitung sisa waktu
+        // --- SHUFFLING LOGIC (INTEGRITAS & KEADILAN) ---
+        if (!isset($data[$sectionId]['question_order'])) {
+            // Jika baru mulai, acak urutan ID soal
+            $questionIds = $this->currentSubTest->questions->pluck('id')->toArray();
+            shuffle($questionIds);
+            
+            // Acak urutan ID opsi untuk setiap soal
+            $optionOrders = [];
+            foreach ($this->currentSubTest->questions as $q) {
+                $oIds = $q->options->pluck('id')->toArray();
+                shuffle($oIds);
+                $optionOrders[$q->id] = $oIds;
+            }
+
+            $data[$sectionId]['question_order'] = $questionIds;
+            $data[$sectionId]['option_orders'] = $optionOrders;
+            $data[$sectionId]['started_at'] = now()->toDateTimeString();
+            
+            $this->result->update(['section_data' => $data]);
+            $this->sectionTimeLeft = $totalMinutes * 60;
+        } else {
+            // Gunakan sisa waktu yang ada
             $startedAt = Carbon::parse($data[$sectionId]['started_at']);
             $elapsedSeconds = now()->diffInSeconds($startedAt);
             $this->sectionTimeLeft = ($totalMinutes * 60) - $elapsedSeconds;
-        } else {
-            // Jika baru mulai, simpan waktu mulai ke database
-            $data[$sectionId] = [
-                'started_at' => now()->toDateTimeString(),
-            ];
-            $this->result->update(['section_data' => $data]);
-            $this->sectionTimeLeft = $totalMinutes * 60;
+        }
+
+        // Muat soal sesuai urutan yang sudah diacak (konsisten)
+        $orderedIds = $data[$sectionId]['question_order'];
+        $this->questions = Question::whereIn('id', $orderedIds)
+            ->with(['options'])
+            ->get()
+            ->sortBy(function($question) use ($orderedIds) {
+                return array_search($question->id, $orderedIds);
+            })->values();
+
+        // Terapkan urutan opsi yang sudah diacak
+        $savedOptionOrders = $data[$sectionId]['option_orders'];
+        foreach ($this->questions as $question) {
+            if (isset($savedOptionOrders[$question->id])) {
+                $oIds = $savedOptionOrders[$question->id];
+                $question->setRelation('options', $question->options->sortBy(function($option) use ($oIds) {
+                    return array_search($option->id, $oIds);
+                })->values());
+            }
         }
 
         // Jika waktu sudah habis sebelum refresh selesai
@@ -157,6 +185,20 @@ class ExamControl extends Component
         $this->saveAnswer();
         $this->currentQuestionIndex = $index;
         $this->loadQuestion();
+    }
+
+    public function recordViolation()
+    {
+        $data = $this->result->section_data ?? [];
+        $sectionId = (string) $this->currentSubTest->id;
+        
+        $violations = $data[$sectionId]['violations'] ?? 0;
+        $data[$sectionId]['violations'] = $violations + 1;
+        
+        $this->result->update(['section_data' => $data]);
+        
+        // Log secara diam-diam di sisi server
+        Log::info("Violation recorded for user ".Auth::id()." on subtest ".$sectionId.". Total: ".($violations + 1));
     }
 
     public function nextQuestion()

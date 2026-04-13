@@ -11,7 +11,7 @@ class Rationalization extends Component
 {
     public $latestResult;
     public $recommendations = [];
-    public $subtestStats = [];
+    public $aiInsight = "";
 
     public function mount()
     {
@@ -23,25 +23,30 @@ class Rationalization extends Component
         if ($this->latestResult) {
             $score = $this->latestResult->total_score;
             
-            // 1. Analisis Kelemahan (Breakdown per Sub-tes)
+            // 1. Analisis Kelemahan
             $this->subtestStats = \App\Models\UserAnswer::where('result_id', $this->latestResult->id)
                 ->with('question.subTest')
                 ->get()
-                ->groupBy(function($answer) {
-                    return $answer->question->subTest->title ?? 'Lainnya';
-                })
+                ->groupBy(fn($answer) => $answer->question->subTest->title ?? 'Lainnya')
                 ->map(function($answers) {
                     $totalQuestions = $answers->count();
-                    $correctAnswers = $answers->filter(fn($ans) => $ans->option && $ans->option->point > 0)->count();
+                    $correctAnswers = $answers->filter(fn($ans) => $ans->option && ($ans->option->point ?? 0) > 0)->count();
                     return [
-                        'score' => $answers->sum('score_obtained'),
                         'correct_count' => $correctAnswers,
                         'total' => $totalQuestions,
-                        'percentage' => round(($correctAnswers / $totalQuestions) * 100),
+                        'percentage' => round(($totalQuestions > 0) ? ($correctAnswers / $totalQuestions) * 100 : 0),
                     ];
                 });
 
-            // 2. Rekomendasi Jurusan (Rationalization)
+            // 2. AI Insight Generator (Simple logic for roadmap)
+            $weakest = $this->subtestStats->sortBy('percentage')->keys()->first();
+            $strongest = $this->subtestStats->sortByDesc('percentage')->keys()->first();
+            
+            if ($weakest) {
+                $this->aiInsight = "Berdasarkan analisismu, kamu sangat kuat di **{$strongest}**, pertahankan! Namun, **{$weakest}** masih menjadi hambatan utama bagimu. Fokuslah mendalami {$weakest} selama 2 jam setiap hari selama minggu ini untuk menaikkan skor rata-ratamu secara signifikan.";
+            }
+
+            // 3. Rekomendasi Jurusan (Rationalization)
             $this->recommendations = Major::where('passing_grade', '<=', $score + 100)
                 ->orderBy('passing_grade', 'desc')
                 ->take(6)

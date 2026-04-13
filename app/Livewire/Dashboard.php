@@ -16,6 +16,12 @@ class Dashboard extends Component
         'average_score' => 0,
         'global_rank' => '-',
     ];
+    public $tier = [
+        'name' => 'Bronze',
+        'color' => '#cd7f32',
+        'icon' => 'bi-shield',
+        'percentile' => 0
+    ];
     public $scoreHistory = [];
     public $scoreDates = [];
     public $selectedPracticeSubject = '';
@@ -31,16 +37,35 @@ class Dashboard extends Component
         $this->stats['total_exams'] = $myResults->count();
         $this->stats['average_score'] = $myResults->avg('total_score') ?? 0;
         
-        // Simple rank logic: sort all users by sum of total_score
-        $rankings = Result::groupBy('user_id')
+        // 1. Calculate Rankings and Percentile
+        $allUserScores = Result::groupBy('user_id')
             ->selectRaw('user_id, sum(total_score) as total')
             ->orderByDesc('total')
-            ->pluck('user_id')
-            ->toArray();
+            ->get();
             
-        $myRankIndex = array_search(Auth::id(), $rankings);
-        if ($myRankIndex !== false) {
-            $this->stats['global_rank'] = '#' . ($myRankIndex + 1);
+        $totalUsers = $allUserScores->count();
+        $myRankIndex = $allUserScores->search(fn($r) => $r->user_id == Auth::id());
+
+        if ($myRankIndex !== false && $totalUsers > 0) {
+            $rank = $myRankIndex + 1;
+            $this->stats['global_rank'] = '#' . $rank;
+            
+            // Formula Persentil: ((Total - Rank) / Total) * 100
+            $percentile = (($totalUsers - $rank + 1) / $totalUsers) * 100;
+            $this->tier['percentile'] = round($percentile, 1);
+
+            // Determine Tier
+            if ($percentile >= 95) {
+                $this->tier = ['name' => '💎 Diamond', 'color' => '#b9f2ff', 'icon' => 'bi-gem', 'percentile' => $this->tier['percentile']];
+            } elseif ($percentile >= 80) {
+                $this->tier = ['name' => '🔥 Platinum', 'color' => '#e5e4e2', 'icon' => 'bi-trophy-fill', 'percentile' => $this->tier['percentile']];
+            } elseif ($percentile >= 60) {
+                $this->tier = ['name' => '⭐ Gold', 'color' => '#ffd700', 'icon' => 'bi-star-fill', 'percentile' => $this->tier['percentile']];
+            } elseif ($percentile >= 40) {
+                $this->tier = ['name' => '🛡️ Silver', 'color' => '#c0c0c0', 'icon' => 'bi-shield-fill', 'percentile' => $this->tier['percentile']];
+            } else {
+                $this->tier = ['name' => '🥉 Bronze', 'color' => '#cd7f32', 'icon' => 'bi-shield', 'percentile' => $this->tier['percentile']];
+            }
         }
 
         // Prepare History Chart Data

@@ -63,10 +63,11 @@
                         @else
                             <div class="alert alert-secondary border-0 small mb-3" style="background-color: rgba(255,255,255,0.03); color: #cbd5e1;">
                                 <h6 class="fw-bold mb-1"><i class="bi bi-info-circle me-1"></i> Format Bulk Import:</h6>
-                                <p class="mb-0 text-muted">
-                                    - Pisahkan antar soal dengan <b>Baris Kosong (Double Enter)</b>.<br>
-                                    - Baris 1: Pertanyaan. Baris selanjutnya: Pilihan Jawaban.<br>
-                                    - Tambahkan <b>*</b> di akhir jawaban yang benar.
+                                <p class="mb-0 text-muted" style="font-size: 0.75rem;">
+                                    - Pisahkan antar soal dengan <b>Double Enter</b>.<br>
+                                    - Gunakan kurung kurawal <b>{angka}</b> di akhir pilihan untuk skor khusus.<br>
+                                    - Contoh: <i>A. Sangat Setuju {5}</i><br>
+                                    - Tetap gunakan <b>*</b> untuk jawaban yang benar (Skor Standar).
                                 </p>
                             </div>
                             <form wire:submit.prevent="saveManual">

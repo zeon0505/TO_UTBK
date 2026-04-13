@@ -94,7 +94,9 @@ class UserMonitor extends Component
         return view('livewire.admin.user-monitor', [
             'users' => $users,
             'totalUsers' => User::count(),
-            'recentUsers' => User::where('created_at', '>=', now()->subDays(1))->count()
+            'recentUsers' => User::where('created_at', '>=', now()->subDays(1))->count(),
+            'totalFinishedExams' => \App\Models\Result::whereNotNull('finished_at')->count(),
+            'avgGlobalScore' => \App\Models\Result::whereNotNull('finished_at')->avg('total_score') ?? 0,
         ])->layout('layouts.app');
     }
 }

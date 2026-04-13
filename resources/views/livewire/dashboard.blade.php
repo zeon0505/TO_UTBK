@@ -8,6 +8,43 @@
         </div>
     </div>
 
+    <!-- Rank Tier Feature -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                <div class="card-body p-4 d-flex align-items-center justify-content-between" style="background: linear-gradient(90deg, #1a1c2c 0%, #435ebe22 50%, #1a1c2c 100%); border: 1px solid rgba(255,255,255,0.05);">
+                    <div class="d-flex align-items-center">
+                        <div class="tier-badge-container me-4 position-relative">
+                            <div class="stats-icon mb-0 d-flex align-items-center justify-content-center shadow-lg" 
+                                 style="background-color: {{ $tier['color'] }}; width: 68px; height: 68px; border: 3px solid rgba(255,255,255,0.3); border-radius: 1.2rem;">
+                                <i class="bi {{ $tier['icon'] }} text-dark fs-2"></i>
+                            </div>
+                            <div class="position-absolute bottom-0 end-0 bg-white rounded-circle p-1 d-flex align-items-center justify-content-center shadow-sm" style="width: 25px; height: 25px; transform: translate(20%, 20%); border: 2px solid #1a1c2c;">
+                                <i class="bi bi-star-fill text-warning" style="font-size: 0.7rem;"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="text-white-50 mb-1 fw-bold text-uppercase" style="letter-spacing: 2.5px; font-size: 0.65rem;">Global Ranking Tier</h6>
+                            <h2 class="text-white fw-extrabold mb-0" style="text-shadow: 0 0 15px {{ $tier['color'] }}66; font-size: 1.8rem;">{{ $tier['name'] }}</h2>
+                            <p class="mb-0 text-white-50 small mt-1">
+                                <i class="bi bi-graph-up-arrow me-1"></i> Kamu berada di <b>Top {{ 100 - $tier['percentile'] }}%</b> Nasional
+                            </p>
+                        </div>
+                    </div>
+                    <div class="d-none d-lg-block text-end me-3">
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="text-white-50 small me-2">Progress</span>
+                            <div class="progress" style="height: 6px; width: 180px; background-color: rgba(255,255,255,0.1);">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: {{ $tier['percentile'] }}%;"></div>
+                            </div>
+                        </div>
+                        <small class="text-white-50" style="font-size: 0.7rem;">Gapai skor lebih tinggi untuk naik Rank!</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @if (session()->has('error'))
         <div class="alert alert-danger alert-dismissible show fade">
             {{ session('error') }}

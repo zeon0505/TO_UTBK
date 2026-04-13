@@ -44,28 +44,54 @@ class QuestionGenerator extends Component
 
             if (count($lines) < 2) continue;
 
-            // Baris pertama blok = Soal
             $questionText = $lines[0];
+            $explanation = null;
+            $customWeight = $this->manualWeight; // Default dari input field
+            $optionsData = [];
+
+            // Proses baris-baris setelah pertanyaan
+            for ($i = 1; $i < count($lines); $i++) {
+                $line = $lines[$i];
+
+                if (str_starts_with(strtolower($line), 'pembahasan:')) {
+                    $explanation = trim(substr($line, 11));
+                } elseif (str_starts_with(strtolower($line), 'poin:')) {
+                    $customWeight = (float) trim(substr($line, 5));
+                } else {
+                    // Dianggap sebagai pilihan jawaban
+                    $optionsData[] = [
+                        'text' => rtrim($line, '*'),
+                        'is_correct' => str_ends_with($line, '*'),
+                    ];
+                }
+            }
             
             $question = Question::create([
                 'sub_test_id' => $this->selectedSubTest,
                 'question_text' => $questionText,
-                'irt_weight' => $this->manualWeight,
+                'explanation' => $explanation,
+                'irt_weight' => $customWeight,
             ]);
 
-            // Baris selanjutnya = Opsi
-            for ($i = 1; $i < count($lines); $i++) {
-                $line = $lines[$i];
-                $isCorrect = str_ends_with($line, '*');
+            foreach ($optionsData as $opt) {
+                // Bersihkan awalan A. B. C.
+                $cleanText = preg_replace('/^[A-E][.\s)]+/', '', $opt['text']);
                 
-                $optionText = rtrim($line, '*');
-                $optionText = preg_replace('/^[A-E][.\s)]+/', '', $optionText);
+                // Deteksi poin kustom dalam format {angka}
+                $finalPoint = 0;
+                if (preg_match('/\{(\d+)\}/', $cleanText, $matches)) {
+                    $finalPoint = (int) $matches[1];
+                    $cleanText = trim(str_replace($matches[0], '', $cleanText));
+                } elseif ($opt['is_correct']) {
+                    // Jika ditandai bintang (*) tapi tidak ada {x}, pakai manualWeight sebagai poin standar
+                    $finalPoint = (int) $this->manualWeight;
+                }
 
-                if (!empty($optionText)) {
+                if (!empty($cleanText)) {
                     Option::create([
                         'question_id' => $question->id,
-                        'option_text' => trim($optionText),
-                        'is_correct' => $isCorrect,
+                        'text' => trim($cleanText), // Sesuai kolom database: text
+                        'point' => $finalPoint,     // Sesuai kolom database: point
                     ]);
                 }
             }

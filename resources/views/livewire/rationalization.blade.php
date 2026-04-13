@@ -18,6 +18,36 @@
             </div>
         </div>
     @else
+        <!-- AI Advisor Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-lg overflow-hidden rounded-4" style="background: linear-gradient(135deg, #1a237e 0%, #435ebe 100%);">
+                    <div class="card-body p-4 p-md-5 text-white position-relative">
+                        <div class="row align-items-center position-relative" style="z-index: 2;">
+                            <div class="col-md-8">
+                                <h3 class="fw-bold mb-1 text-white"><i class="bi bi-robot me-2"></i> AI Personal Advisor</h3>
+                                <p class="text-white-50 mb-4">Menganalisis performamu secara mendalam menggunakan algoritma pemenang.</p>
+                                <div class="bg-white bg-opacity-10 p-4 rounded-4 border border-white border-opacity-10">
+                                    <p class="lead mb-0" style="line-height: 1.6; font-size: 1.1rem;">
+                                        {!! Str::markdown($aiInsight) !!}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 d-none d-md-block text-center">
+                                <div class="stats-icon white mb-4 mx-auto" style="width: 80px; height: 80px; background: white;">
+                                    <i class="bi bi-stars fs-1" style="color: #435ebe;"></i>
+                                </div>
+                                <h5 class="fw-bold text-white mb-0">Study Pathway</h5>
+                                <small class="text-white-50">Personalisasi 100%</small>
+                            </div>
+                        </div>
+                        <!-- Background Decor -->
+                        <div style="position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%); border-radius: 50%; z-index: 1;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row mb-4">
             <!-- Topic Breakdown / Analisis Kelemahan -->
             <div class="col-md-5">

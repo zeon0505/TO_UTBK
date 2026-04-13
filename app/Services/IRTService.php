@@ -62,11 +62,8 @@ class IRTService
 
             foreach ($answers as $answer) {
                 if ($answer->option && $answer->option->point > 0) {
-                    // Raw Points (Sum of correct answers)
-                    $rawPoints++;
-                    
-                    // IRT Score = Option Point * IRT Weight
-                    $totalScore += ($answer->option->point * $answer->question->irt_weight);
+                    $rawPoints += $answer->option->point;
+                    $totalScore += ($answer->option->point * ($answer->question->irt_weight ?? 1.0));
                 }
             }
 

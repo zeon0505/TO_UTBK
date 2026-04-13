@@ -53,8 +53,42 @@
                                 </div>
                             </div>
                             <div class="col-md-8 col-lg-12 col-xl-12 col-xxl-7">
-                                <h6 class="text-muted font-semibold">Daftar (24j Terakhir)</h6>
+                                <h6 class="text-muted font-semibold">Peserta Baru</h6>
                                 <h6 class="font-extrabold mb-0">{{ $recentUsers }}</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 col-md-6">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body px-4 py-4-5">
+                        <div class="row">
+                            <div class="col-md-4 col-lg-12 col-xl-12 col-xxl-5 d-flex justify-content-start">
+                                <div class="stats-icon green mb-2">
+                                    <i class="bi bi-journal-check text-white"></i>
+                                </div>
+                            </div>
+                            <div class="col-md-8 col-lg-12 col-xl-12 col-xxl-7">
+                                <h6 class="text-muted font-semibold">Ujian Selesai</h6>
+                                <h6 class="font-extrabold mb-0">{{ $totalFinishedExams }}</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 col-md-6">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body px-4 py-4-5">
+                        <div class="row">
+                            <div class="col-md-4 col-lg-12 col-xl-12 col-xxl-5 d-flex justify-content-start">
+                                <div class="stats-icon red mb-2">
+                                    <i class="bi bi-trophy-fill text-white"></i>
+                                </div>
+                            </div>
+                            <div class="col-md-8 col-lg-12 col-xl-12 col-xxl-7">
+                                <h6 class="text-muted font-semibold">Avg. Skor IRT</h6>
+                                <h6 class="font-extrabold mb-0">{{ number_format($avgGlobalScore, 1) }}</h6>
                             </div>
                         </div>
                     </div>
@@ -194,6 +228,8 @@
         .stats-icon { width: 3rem; height: 3rem; border-radius: .5rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
         .stats-icon.purple { background-color: #9694ff; }
         .stats-icon.blue { background-color: #57caeb; }
+        .stats-icon.green { background-color: #5ddab4; }
+        .stats-icon.red { background-color: #ff7976; }
         .avatar-md { width: 2.5rem; height: 2.5rem; }
         .avatar img { border-radius: 50%; width: 100%; }
         .bg-light-success { background-color: #e8fadf; }

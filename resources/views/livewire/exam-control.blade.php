@@ -90,6 +90,47 @@
     initAntiCheat() {
         // Anti-Double Tab
         const channel = new BroadcastChannel('exam_channel');
+        // Violation Alarm & Pop-Up (Metode Aktif & Efek Jera)
+        document.addEventListener('livewire:init', () => {
+            // Anti-Screenshot (Blur when focus is lost)
+            const examContent = document.getElementById('exam-content-area');
+            const blurWarning = document.getElementById('blur-warning');
+            
+            window.addEventListener('blur', () => {
+                if(examContent) examContent.classList.add('content-blur');
+                if(blurWarning) {
+                    blurWarning.classList.remove('d-none');
+                    blurWarning.classList.add('d-flex');
+                }
+            });
+            
+            window.addEventListener('focus', () => {
+                if(examContent) examContent.classList.remove('content-blur');
+                if(blurWarning) {
+                    blurWarning.classList.remove('d-flex');
+                    blurWarning.classList.add('d-none');
+                }
+            });
+        });
+        
+        window.addEventListener('blur', () => {
+            // Mainkan suara alarm
+            this.$dispatch('play-sfx', { type: 'error' });
+            
+            // Catat pelanggaran ke database
+            @this.call('recordViolation');
+
+            // Tampilkan Pop-up Peringatan Keras
+            Swal.fire({
+                title: 'PERINGATAN KERAS!',
+                text: 'Dilarang meninggalkan halaman ujian! Pelanggaran Anda telah dicatat oleh sistem.',
+                icon: 'warning',
+                confirmButtonText: 'SAYA MENGERTI',
+                confirmButtonColor: '#d33',
+                allowOutsideClick: false,
+                backdrop: `rgba(255,0,0,0.4)`
+            });
+        });
         channel.postMessage({ type: 'NEW_TAB', examId: '{{ $exam->id }}' });
         channel.onmessage = (e) => {
             if (e.data.type === 'NEW_TAB' && e.data.examId === '{{ $exam->id }}') {
@@ -200,9 +241,11 @@ class="container-fluid no-select">
 </style>
 
     @if($showInstructions)
-    <div class="row justify-content-center py-5 text-center">
-        <div class="col-md-8">
-            <div class="card shadow-lg border-0 rounded-4">
+    <div class="container-fluid py-4" id="exam-container">
+    <div class="row">
+        <!-- Main Exam Area -->
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0 rounded-4" id="exam-content-area">
                 <div class="card-body p-5">
                     <div class="stats-icon purple mx-auto mb-4" style="width: 80px; height: 80px;">
                         <i class="bi bi-info-circle fs-1"></i>
