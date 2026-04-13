@@ -155,26 +155,26 @@ class QuestionGenerator extends Component
 
         try {
             $apiKey = env('GEMINI_API_KEY');
-            // AI akan membedah teks kacau Anda menjadi data yang rapi
+            if (!$apiKey) throw new \Exception('API Key Gemini belum diset di .env');
+
             $response = Http::timeout(120)->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$apiKey}", [
                 'contents' => [
                     ['parts' => [
-                        ['text' => "Bedah teks soal berantakan ini menjadi JSON yang rapi. 
-                        Pisahkan mana soal, mana pilihan jawaban, mana jawaban benar, dan mana pembahasan.
-                        PENTING: Pastikan instruksi soal yang panjang tidak masuk ke pilihan jawaban.
+                        ['text' => "Tolong parsing teks berantakan ini menjadi JSON array untuk soal UTBK. 
+                        Pastikan instruksi soal yang panjang masuk ke field 'question'.
+                        Kunci jawaban yang benar harus diberi 'point' 5 (atau sesuai bobot), yang salah 0.
                         
-                        OUTPUT HARUS JSON ARRAY:
+                        STRUKTUR HARUS PERSIS SEPERTI INI (JSON ARRAY):
                         [{
-                            'question': '...',
-                            'explanation': '...',
-                            'weight': 1.0,
+                            'question': 'isi soal lengkap',
+                            'explanation': 'pembahasan',
                             'options': [
-                                {'text': '...', 'point': 5},
-                                {'text': '...', 'point': 0}
+                                {'text': 'pilihan A', 'point': 0},
+                                {'text': 'pilihan B', 'point': 5}
                             ]
                         }]
 
-                        TEKS:
+                        TEKS UNTUK DIPROSES:
                         {$this->bulkText}"]
                     ]]
                 ],
@@ -182,42 +182,46 @@ class QuestionGenerator extends Component
             ]);
 
             if ($response->successful()) {
-                $rawText = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                
-                // BERSIHKAN MARKDOWN DARI AI
-                $cleanJson = preg_replace('/^```json|```$/m', '', $rawText);
+                $rawOutput = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? '[]';
+                $cleanJson = preg_replace('/^```json|```$/m', '', $rawOutput);
                 $data = json_decode(trim($cleanJson), true);
 
-                if (!$data) {
-                    \Illuminate\Support\Facades\Log::error('Gagal Decode JSON AI: ' . $rawText);
-                    throw new \Exception('Format data dari AI tidak valid. Silakan coba lagi.');
+                if (!is_array($data)) {
+                    throw new \Exception('AI mengembalikan format bukan array. Silakan coba klik Simpan lagi.');
                 }
 
                 $count = 0;
                 foreach ($data as $item) {
+                    if (empty($item['question'])) continue;
+
                     $question = Question::create([
                         'sub_test_id' => $this->selectedSubTest,
                         'text' => $item['question'],
                         'type' => 'Pilihan Ganda',
                         'explanation' => $item['explanation'] ?? null,
-                        'irt_weight' => $item['weight'] ?? 1.0,
+                        'irt_weight' => 1.0,
                     ]);
 
-                    foreach ($item['options'] as $opt) {
-                        Option::create([
-                            'question_id' => $question->id,
-                            'text' => $opt['text'],
-                            'point' => $opt['point'] ?? 0,
-                        ]);
+                    if (isset($item['options']) && is_array($item['options'])) {
+                        foreach ($item['options'] as $opt) {
+                            Option::create([
+                                'question_id' => $question->id,
+                                'text' => $opt['text'] ?? 'Opsi Kosong',
+                                'point' => $opt['point'] ?? 0,
+                            ]);
+                        }
                     }
                     $count++;
                 }
 
                 $this->reset(['bulkText']);
-                session()->flash('success', "Magic Success! {$count} soal berhasil dipilah dan disimpan dengan sempurna.");
+                session()->flash('success', "BERHASIL! {$count} soal masuk ke database.");
+            } else {
+                $errorData = $response->json();
+                throw new \Exception($errorData['error']['message'] ?? 'Koneksi AI gagal.');
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Gagal Simpan Manual: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('EROR-SIMPAN: ' . $e->getMessage());
             session()->flash('error', 'SIMPAN GAGAL: ' . $e->getMessage());
         }
 
