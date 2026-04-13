@@ -62,7 +62,30 @@ class Dashboard extends Component
             $query->where('category', $this->filterCategory);
         }
         
-        $this->activeExams = $query->get();
+        $exams = $query->get();
+        
+        // Cek status pengerjaan untuk tiap ujian
+        $this->activeExams = $exams->map(function($exam) {
+            $result = Result::where('user_id', Auth::id())
+                ->where('exam_id', $exam->id)
+                ->first();
+
+            if (!$result) {
+                $exam->user_status = 'NOT_STARTED';
+            } elseif ($result->finished_at) {
+                $exam->user_status = 'FINISHED';
+                $exam->result_id = $result->id;
+            } else {
+                $exam->user_status = 'IN_PROGRESS';
+                // Deteksi sub-tes terakhir
+                $lastAnswer = \App\Models\UserAnswer::where('result_id', $result->id)
+                    ->with('question')
+                    ->latest()
+                    ->first();
+                $exam->last_subject_id = $lastAnswer->question->sub_test_id ?? $exam->subTests->first()->id ?? null;
+            }
+            return $exam;
+        });
     }
 
     public function getPracticeSubjectsProperty()

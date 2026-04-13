@@ -3,7 +3,7 @@
         <div class="row align-items-center">
             <div class="col-md-6">
                 <h3>📊 Analisis & Rasionalisasi</h3>
-                <p class="text-subtitle text-muted">Berdasarkan hasil Tryout terbaru Anda (Skor: {{ number_format($latestResult->total_score ?? 0, 0) }} IP).</p>
+                <p class="text-subtitle text-muted">Berdasarkan hasil Tryout terbaru Anda (Skor: {{ number_format($latestResult->total_score ?? 0, 2) }} IP).</p>
             </div>
         </div>
     </div>
@@ -43,7 +43,7 @@
                                     </div>
                                 </div>
                                 <div class="text-end mt-1">
-                                    <small class="fw-bold" style="font-size: 0.7rem;">Skor IRT: {{ number_format($data['score'], 0) }}</small>
+                                    <small class="fw-bold" style="font-size: 0.7rem;">Skor IRT: {{ number_format($data['score'], 2) }}</small>
                                 </div>
                             </div>
                         @endforeach

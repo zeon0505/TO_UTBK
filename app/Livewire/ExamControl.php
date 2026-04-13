@@ -76,12 +76,33 @@ class ExamControl extends Component
 
         $this->currentQuestionIndex = 0;
         
-        // Timer Sub-Test (in seconds)
-        $this->sectionTimeLeft = ($this->currentSubTest->duration ?? 30) * 60;
+        // --- PERBAIKAN BUG TIMER ---
+        $data = $this->result->section_data ?? [];
+        $sectionId = (string) $this->currentSubTest->id;
+        $totalMinutes = $this->currentSubTest->duration ?? 30;
+        
+        if (isset($data[$sectionId]['started_at'])) {
+            // Jika sudah pernah dimulai, hitung sisa waktu
+            $startedAt = Carbon::parse($data[$sectionId]['started_at']);
+            $elapsedSeconds = now()->diffInSeconds($startedAt);
+            $this->sectionTimeLeft = ($totalMinutes * 60) - $elapsedSeconds;
+        } else {
+            // Jika baru mulai, simpan waktu mulai ke database
+            $data[$sectionId] = [
+                'started_at' => now()->toDateTimeString(),
+            ];
+            $this->result->update(['section_data' => $data]);
+            $this->sectionTimeLeft = $totalMinutes * 60;
+        }
+
+        // Jika waktu sudah habis sebelum refresh selesai
+        if ($this->sectionTimeLeft <= 0) {
+            return $this->moveToNextSection();
+        }
 
         $this->loadQuestion();
         
-        // Dispatch to frontend to start central timer
+        // Dispatch ke frontend
         $this->dispatch('start-section-timer', duration: $this->sectionTimeLeft);
     }
 
@@ -105,6 +126,16 @@ class ExamControl extends Component
 
         // Paksa Timer per-soal (60 detik)
         $this->dispatch('question-loaded', duration: 60);
+    }
+
+    public function updatedSelectedOptionId()
+    {
+        $this->saveAnswer();
+    }
+
+    public function updatedIsDoubtful()
+    {
+        $this->saveAnswer();
     }
 
     public function selectOption($optionId)

@@ -6,6 +6,9 @@
     violationCount: 0,
     maxViolations: 3,
     warningPlayed: false,
+    showScratchpad: false,
+    isDrawing: false,
+    ctx: null,
     playSFX(type) {
         setTimeout(() => {
             const sounds = {
@@ -19,6 +22,36 @@
                 audio.play().catch(() => {});
             } catch (e) {}
         }, 0);
+    },
+    initCanvas() {
+        const canvas = this.$refs.scratchCanvas;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        this.ctx = canvas.getContext('2d');
+        this.ctx.lineWidth = 2;
+        this.ctx.lineCap = 'round';
+        this.ctx.strokeStyle = '#2d3436';
+    },
+    startDrawing(e) {
+        this.isDrawing = true;
+        this.draw(e);
+    },
+    stopDrawing() {
+        this.isDrawing = false;
+        this.ctx.beginPath();
+    },
+    draw(e) {
+        if (!this.isDrawing) return;
+        const rect = this.$refs.scratchCanvas.getBoundingClientRect();
+        const x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
+        const y = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
+        this.ctx.lineTo(x, y);
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+    },
+    clearCanvas() {
+        this.ctx.clearRect(0, 0, this.$refs.scratchCanvas.width, this.$refs.scratchCanvas.height);
     },
     startSectionTimer(duration) {
         this.sectionTimeLeft = duration;
@@ -55,33 +88,71 @@
         }, 1000);
     },
     initAntiCheat() {
-        document.addEventListener('contextmenu', e => e.preventDefault());
-        document.addEventListener('copy', e => e.preventDefault());
-        window.onblur = () => {
-            if (!this.showInstructions && !this.isFinished) {
-                this.violationCount++;
-                if (this.violationCount >= this.maxViolations) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Pelanggaran Kritikal!',
-                        text: 'Anda terlalu sering meninggalkan halaman. Ujian dikumpulkan otomatis.',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        $wire.finishExam();
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Peringatan Keamanan',
-                        html: 'Dilarang pindah tab atau meninggalkan halaman ujian!<br>Pelanggaran dicatat: <b>' + this.violationCount + '/' + this.maxViolations + '</b>',
-                        confirmButtonText: 'Saya Mengerti',
-                        confirmButtonColor: '#435ebe',
-                    });
-                }
+        // Anti-Double Tab
+        const channel = new BroadcastChannel('exam_channel');
+        channel.postMessage({ type: 'NEW_TAB', examId: '{{ $exam->id }}' });
+        channel.onmessage = (e) => {
+            if (e.data.type === 'NEW_TAB' && e.data.examId === '{{ $exam->id }}') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Akses Ditolak!',
+                    text: 'Anda sudah membuka halaman ujian ini di tab lain. Silakan gunakan satu tab saja.',
+                    confirmButtonText: 'Tutup Tab Ini'
+                }).then(() => {
+                    window.close();
+                });
             }
         };
+
+        // Hapus listener lama jika ada (mencegah duplikasi)
+        if (window.cheatHandler) {
+            window.removeEventListener('blur', window.cheatHandler);
+        }
+
+        // Simpan handler ke variabel global agar bisa dihapus nanti
+        window.cheatHandler = () => {
+            if (this.showInstructions || this.isFinished) return;
+            
+            this.violationCount++;
+            this.playSFX('warning');
+
+            if (this.violationCount >= this.maxViolations) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Pelanggaran Kritikal!',
+                    text: 'Anda terlalu sering meninggalkan halaman. Ujian dikumpulkan otomatis.',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    this.stopAntiCheat();
+                    $wire.finishExam();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan Keamanan',
+                    html: 'Dilarang pindah tab atau meninggalkan halaman ujian!<br>Pelanggaran dicatat: <b>' + this.violationCount + '/' + this.maxViolations + '</b>',
+                    confirmButtonText: 'Saya Mengerti',
+                    confirmButtonColor: '#435ebe',
+                });
+            }
+        };
+
+        window.addEventListener('blur', window.cheatHandler);
+        
+        // Disable Right Click & Copy
+        document.oncontextmenu = () => !this.isFinished;
+        document.oncopy = () => !this.isFinished;
+    },
+    stopAntiCheat() {
+        if (window.cheatHandler) {
+            window.removeEventListener('blur', window.cheatHandler);
+            window.cheatHandler = null;
+        }
+        document.oncontextmenu = null;
+        document.oncopy = null;
     }
-}" 
+}
+" 
 x-on:start-section-timer.window="startSectionTimer($event.detail.duration); initAntiCheat()"
 x-on:question-loaded.window="startQuestionTimer($event.detail.duration)"
 x-on:play-sfx.window="playSFX($event.detail.type)"
@@ -150,8 +221,8 @@ class="container-fluid no-select">
                 </div>
 
                 <div class="d-flex gap-2 justify-content-center">
-                    <a href="/tryouts" class="btn btn-secondary rounded-pill px-4" wire:navigate>Lihat Riwayat</a>
-                    <a href="/dashboard" class="btn btn-primary rounded-pill px-4" wire:navigate>Ke Dashboard</a>
+                    <a href="/tryouts" class="btn btn-secondary rounded-pill px-4" @click="stopAntiCheat()" wire:navigate>Lihat Riwayat</a>
+                    <a href="/dashboard" class="btn btn-primary rounded-pill px-4" @click="stopAntiCheat()" wire:navigate>Ke Dashboard</a>
                 </div>
             </div>
         </div>

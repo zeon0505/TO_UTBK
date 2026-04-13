@@ -160,18 +160,24 @@
                 <form wire:submit="updateUser">
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label">Nama Lengkap</label>
+                            <label class="form-label fw-bold">Nama Lengkap</label>
                             <input type="text" class="form-control" wire:model="editingName">
-                            @error('editingName') <small class="text-danger">{{ $message }}</small> @enderror
+                            @error('editingName') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Email</label>
+                            <label class="form-label fw-bold">Email</label>
                             <input type="email" class="form-control" wire:model="editingEmail">
-                            @error('editingEmail') <small class="text-danger">{{ $message }}</small> @enderror
+                            @error('editingEmail') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Asal Sekolah</label>
+                            <label class="form-label fw-bold">Asal Sekolah</label>
                             <input type="text" class="form-control" wire:model="editingSchool">
+                            @error('editingSchool') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-primary">Reset Password (Opsional)</label>
+                            <input type="text" class="form-control" wire:model="editingPassword" placeholder="Ketik password baru jika ingin meriset">
+                            <small class="text-muted">Biarkan kosong jika tidak ingin mengubah password.</small>
                         </div>
                     </div>
                     <div class="modal-footer">

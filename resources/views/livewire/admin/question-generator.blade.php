@@ -1,114 +1,101 @@
 <div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold mb-0">
-            <i class="bi bi-file-text text-primary me-2"></i> Text Question Generator
-        </h3>
+    <div class="page-heading">
+        <div class="row">
+            <div class="col-12 col-md-6 order-md-1 order-last">
+                <h3>🤖 AI Question Generator</h3>
+                <p class="text-subtitle text-muted">Buat puluhan soal berkualitas UTBK hanya dalam hitungan detik menggunakan AI.</p>
+            </div>
+        </div>
     </div>
 
-    @if (session()->has('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if (session()->has('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                <div class="card-header bg-primary text-white border-0 py-3">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-code-square me-2"></i> Paste Raw Text Soal</h5>
-                </div>
-                <div class="card-body p-4">
-                    <form wire:submit.prevent="generate">
-                        
-                        <div class="row mb-4">
-                            <!-- Tryout Select -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Pilih Tryout / Ujian</label>
-                                <select class="form-select" wire:model.live="examId">
-                                    <option value="">-- Pilih --</option>
-                                    @foreach($this->exams as $ex)
-                                        <option value="{{ $ex->id }}">{{ $ex->title }}</option>
+    <section class="section">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="fw-bold mb-4">Konfigurasi AI</h5>
+                        <form wire:submit.prevent="generate">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Topik / Materi</label>
+                                <input type="text" class="form-control" wire:model="topic" placeholder="Contoh: Logaritma, Termodinamika, dll">
+                                @error('topic') <span class="text-danger small">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Tingkat Kesulitan</label>
+                                <select class="form-select" wire:model="difficulty">
+                                    <option value="Mudah">Mudah</option>
+                                    <option value="Sedang">Sedang</option>
+                                    <option value="Sulit">Sulit (HOTs)</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Target Sub-Tes</label>
+                                <select class="form-select" wire:model="selectedSubTest">
+                                    <option value="">-- Pilih Sub-Tes --</option>
+                                    @foreach($subTests as $st)
+                                        <option value="{{ $st->id }}">{{ $st->exam->title }} - {{ $st->title }}</option>
                                     @endforeach
                                 </select>
-                                @error('examId') <small class="text-danger">{{ $message }}</small> @enderror
+                                @error('selectedSubTest') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
-
-                            <!-- SubTest Select -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Pilih Materi / Sub-Tes</label>
-                                <select class="form-select" wire:model="subTestId" {{ empty($examId) ? 'disabled' : '' }}>
-                                    <option value="">-- Pilih Materi --</option>
-                                    @foreach($this->subTests as $st)
-                                        <option value="{{ $st->id }}">{{ $st->title }}</option>
-                                    @endforeach
-                                </select>
-                                @error('subTestId') <small class="text-danger">{{ $message }}</small> @enderror
-                            </div>
-                        </div>
-
-                        <!-- API Key -->
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Gemini API Key</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white"><i class="bi bi-key text-warning"></i></span>
-                                <input type="text" class="form-control" wire:model="apiKey" placeholder="AIzaSy...">
-                            </div>
-                            <small class="text-muted mt-1 d-block">AI pintar membutuhkan API Key (Google AI Studio). Hanya tersimpan di sesi ini.</small>
-                            @error('apiKey') <small class="text-danger">{{ $message }}</small> @enderror
-                        </div>
-
-                        <!-- Raw Text -->
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Tempel Soal (Bisa lebih dari 1)</label>
-                            <textarea class="form-control font-monospace" wire:model="rawText" rows="10" placeholder="Paste soal berantakan di sini..." style="font-size: 14px"></textarea>
-                            <small class="text-muted mt-1 d-block">AI akan otomatis memisahkan pertanyaan, pilihan, dan kunci jawaban sendiri.</small>
-                            @error('rawText') <small class="text-danger">{{ $message }}</small> @enderror
-                        </div>
-
-                        <!-- Submit Button -->
-                        <div class="d-grid mt-4">
-                            <button type="submit" class="btn btn-primary py-3 fs-5 fw-bold shadow-sm" wire:loading.attr="disabled">
-                                <span wire:loading.remove wire:target="generate">
-                                    <i class="bi bi-robot me-2"></i> Ekstrak Soal dengan AI Pintar
-                                </span>
+                            <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm" wire:loading.attr="disabled">
+                                <span wire:loading.remove wire:target="generate">🪄 Generate Soal Sekarang</span>
                                 <span wire:loading wire:target="generate">
-                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                    AI Sedang Menganalisis & Memisahkan Soal...
+                                    <span class="spinner-border spinner-border-sm me-2"></span> Memikirkan Soal...
                                 </span>
                             </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                @if(session()->has('success'))
+                    <div class="alert alert-success alert-dismissible show fade shadow-sm border-0 mb-4">
+                        <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
+                @if(!empty($generatedQuestions))
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold">Pratinjau Hasil AI</h5>
+                            <button wire:click="saveAll" class="btn btn-success fw-bold px-4 rounded-pill shadow-sm">
+                                <i class="bi bi-cloud-arrow-up-fill me-2"></i> Simpan Semua Soal
+                            </button>
                         </div>
-                    </form>
-                </div>
+                        <div class="card-body">
+                            @foreach($generatedQuestions as $index => $q)
+                                <div class="mb-4 p-3 border rounded-4 bg-light bg-opacity-50">
+                                    <h6 class="fw-bold mb-3">Soal #{{ $index + 1 }}</h6>
+                                    <p class="mb-3 fs-6">{{ $q['question'] }}</p>
+                                    <div class="row g-2">
+                                        @foreach($q['options'] as $o)
+                                            <div class="col-6">
+                                                <div class="p-2 border rounded-3 {{ $o['is_correct'] ? 'bg-success bg-opacity-10 border-success' : 'bg-white' }}">
+                                                    <small class="d-block {{ $o['is_correct'] ? 'text-success fw-bold' : '' }}">
+                                                        {{ $o['text'] }} 
+                                                        @if($o['is_correct']) <i class="bi bi-check-lg ms-1"></i> @endif
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @else
+                    <div class="card shadow-sm border-0 d-flex align-items-center justify-content-center p-5 text-center bg-light bg-opacity-25" style="border: 2px dashed #dee2e6 !important;">
+                        <div class="stats-icon purple mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-robot fs-1 text-white"></i>
+                        </div>
+                        <h4 class="fw-bold">Belum Ada Soal</h4>
+                        <p class="text-muted">Isi topik di sebelah kiri untuk mulai merancang soal dengan AI.</p>
+                    </div>
+                @endif
             </div>
         </div>
-        
-        <div class="col-md-4">
-            <div class="card border-0 bg-light rounded-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3"><i class="bi bi-spellcheck text-success me-2"></i> Panduan Format</h5>
-                    <ul class="text-muted" style="line-height: 1.8">
-                        <li>Soal harus diawali angka dan titik: <code>1. </code></li>
-                        <li>Pilihan jawaban ganda wajib menggunakan huruf kapital dikuti kurung tutup <code>A)</code> atau titik <code>A.</code></li>
-                        <li>Tambahkan bintang <code>*</code> di belakang teks jawaban yang benar agar terdeteksi sistem skor.</li>
-                    </ul>
-                    <hr>
-                    <strong>Contoh Valid:</strong>
-                    <pre class="bg-dark text-white p-2 rounded mt-2" style="font-size: 12px">
-1. Berapa hasil dari 5+5?
-A. 1
-B. 10*
-C. 5
-                    </pre>
-                </div>
-            </div>
-        </div>
-    </div>
+    </section>
 </div>

@@ -164,7 +164,13 @@
                                 </td>
                                 <td class="border-0 text-center text-muted small">{{ $exam->duration }} Menit</td>
                                 <td class="border-0 text-center">
-                                    <a href="/exam/{{ $exam->id }}" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm" wire:navigate>Mulai</a>
+                                    @if($exam->user_status == 'NOT_STARTED')
+                                        <a href="/exam/{{ $exam->id }}" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm" wire:navigate>Mulai</a>
+                                    @elseif($exam->user_status == 'IN_PROGRESS')
+                                        <a href="/exam/{{ $exam->id }}?subject={{ $exam->last_subject_id }}" class="btn btn-warning btn-sm rounded-pill px-4 shadow-sm" wire:navigate>Lanjutkan</a>
+                                    @elseif($exam->user_status == 'FINISHED')
+                                        <a href="/rationalization/{{ $exam->result_id }}" class="btn btn-success btn-sm rounded-pill px-4 shadow-sm" wire:navigate>Lihat Hasil</a>
+                                    @endif
                                 </td>
                             </tr>
                             @empty
@@ -179,66 +185,81 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('livewire:navigated', () => {
             const ctx = document.getElementById('scoreChart');
-            if (ctx) {
-                // Determine theme colors based on Alpine state or localStorage
-                const isDark = localStorage.getItem('theme') === 'dark';
-                const textColor = isDark ? '#919eab' : '#64748b';
-                const gridColor = isDark ? 'rgba(145, 158, 171, 0.1)' : 'rgba(0,0,0,0.03)';
+            if (!ctx) return;
 
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: @json($scoreDates),
-                        datasets: [{
-                            label: 'Skor IRT',
-                            data: @json($scoreHistory),
-                            fill: true,
-                            borderColor: '#6366f1',
-                            backgroundColor: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(99, 102, 241, 0.1)',
-                            tension: 0.4,
-                            pointRadius: 6,
-                            pointBackgroundColor: '#6366f1',
-                            pointBorderColor: isDark ? '#161c24' : '#fff',
-                            pointBorderWidth: 2
-                        }]
+            // Cleanup existing chart instance if exists to prevent bug
+            if (window.myDashboardChart) {
+                window.myDashboardChart.destroy();
+            }
+
+            const isDark = localStorage.getItem('theme') === 'dark';
+            const colors = {
+                primary: '#6366f1',
+                text: isDark ? '#94a3b8' : '#64748b',
+                grid: isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(0,0,0,0.05)',
+                bg: isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)'
+            };
+
+            window.myDashboardChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: @json($scoreDates),
+                    datasets: [{
+                        label: 'Skor IRT',
+                        data: @json($scoreHistory),
+                        fill: true,
+                        borderColor: colors.primary,
+                        backgroundColor: colors.bg,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: colors.primary,
+                        pointBorderColor: isDark ? '#1e1e2d' : '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: isDark ? '#1e1e2d' : '#fff',
+                            titleColor: isDark ? '#fff' : '#1e293b',
+                            bodyColor: isDark ? '#cbd5e1' : '#475569',
+                            borderColor: colors.grid,
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: (context) => ` Skor: ${context.parsed.y.toFixed(2)} IP`
+                            }
+                        }
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                backgroundColor: isDark ? '#212b36' : '#1e293b',
-                                titleColor: '#fff',
-                                bodyColor: '#fff',
-                                padding: 12,
-                                cornerRadius: 8
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: colors.grid },
+                            ticks: { 
+                                color: colors.text,
+                                font: { size: 10, weight: '500' }
                             }
                         },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: gridColor },
-                                ticks: { 
-                                    color: textColor,
-                                    font: { size: 11 } 
-                                }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: { 
-                                    color: textColor,
-                                    font: { size: 11 } 
-                                }
+                        x: {
+                            grid: { display: false },
+                            ticks: { 
+                                color: colors.text,
+                                font: { size: 10, weight: '500' }
                             }
                         }
                     }
-                });
-            }
+                }
+            });
         });
     </script>
 </div>

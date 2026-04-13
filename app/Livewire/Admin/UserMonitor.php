@@ -17,6 +17,7 @@ class UserMonitor extends Component
     public $editingName = '';
     public $editingEmail = '';
     public $editingSchool = '';
+    public $editingPassword = '';
 
     public function deleteUser($id)
     {
@@ -31,18 +32,20 @@ class UserMonitor extends Component
 
     public function editUser($id)
     {
-        $user = User::find($id);
-        $this->editingUserId = $id;
+        $user = User::findOrFail($id);
+        $this->editingUserId = $user->id;
         $this->editingName = $user->name;
         $this->editingEmail = $user->email;
         $this->editingSchool = $user->school;
+        $this->editingPassword = ''; 
     }
 
     public function updateUser()
     {
         $this->validate([
-            'editingName' => 'required|min:3',
+            'editingName' => 'required',
             'editingEmail' => 'required|email|unique:users,email,' . $this->editingUserId,
+            'editingSchool' => 'required',
         ]);
 
         $user = User::find($this->editingUserId);
@@ -52,8 +55,13 @@ class UserMonitor extends Component
             'school' => $this->editingSchool,
         ]);
 
-        $this->editingUserId = null;
+        if (!empty($this->editingPassword)) {
+            $user->password = \Illuminate\Support\Facades\Hash::make($this->editingPassword);
+            $user->save();
+        }
+
         session()->flash('success', 'Data user berhasil diperbarui.');
+        $this->editingUserId = null;
     }
 
     public function cancelEdit()

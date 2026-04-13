@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Result extends Model
 {
-    protected $fillable = ['user_id', 'exam_id', 'total_score', 'started_at', 'finished_at'];
+    protected $fillable = ['user_id', 'exam_id', 'section_data', 'total_score', 'started_at', 'finished_at'];
 
     protected $casts = [
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
+        'section_data' => 'array',
     ];
 
     public function user()
