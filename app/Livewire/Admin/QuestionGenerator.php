@@ -144,7 +144,7 @@ class QuestionGenerator extends Component
             
             $question = Question::create([
                 'sub_test_id' => $this->selectedSubTest,
-                'question_text' => $questionText,
+                'text' => $questionText,
                 'explanation' => $explanation,
                 'irt_weight' => $customWeight,
             ]);
@@ -227,7 +227,7 @@ class QuestionGenerator extends Component
         foreach ($this->generatedQuestions as $qData) {
             $question = Question::create([
                 'sub_test_id' => $this->selectedSubTest,
-                'question_text' => $qData['question'],
+                'text' => $qData['question'],
                 'irt_weight' => 1.0, 
             ]);
 
