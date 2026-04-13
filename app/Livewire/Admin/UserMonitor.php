@@ -61,6 +61,21 @@ class UserMonitor extends Component
         $this->editingUserId = null;
     }
 
+    public function toggleAdmin($id)
+    {
+        if ($id === auth()->id()) {
+            session()->flash('error', 'Anda tidak bisa mengubah status admin diri Anda sendiri.');
+            return;
+        }
+
+        $user = User::find($id);
+        $user->is_admin = !$user->is_admin;
+        $user->save();
+
+        $status = $user->is_admin ? 'Admin baru ditambahkan.' : 'Status Admin dicabut.';
+        session()->flash('success', $status);
+    }
+
     public function render()
     {
         $users = User::where('name', 'like', '%' . $this->search . '%')

@@ -29,8 +29,15 @@
             } else {
                 clearInterval(this.sectionTimer);
                 clearInterval(this.questionTimer);
-                alert('Waktu SUB-TES telah habis!');
-                $wire.moveToNextSection();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Waktu Bab Habis!',
+                    text: 'Sistem akan memindahkan Anda ke sub-tes berikutnya.',
+                    timer: 3000,
+                    showConfirmButton: false
+                }).then(() => {
+                    $wire.moveToNextSection();
+                });
             }
         }, 1000);
     },
@@ -43,7 +50,6 @@
             } else {
                 clearInterval(this.questionTimer);
                 this.playSFX('warning');
-                // Auto next soal
                 $wire.nextQuestion();
             }
         }, 1000);
@@ -55,10 +61,22 @@
             if (!this.showInstructions && !this.isFinished) {
                 this.violationCount++;
                 if (this.violationCount >= this.maxViolations) {
-                    alert('PELANGGARAN: Terlalu sering meninggalkan halaman!');
-                    $wire.finishExam();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Pelanggaran Kritikal!',
+                        text: 'Anda terlalu sering meninggalkan halaman. Ujian dikumpulkan otomatis.',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        $wire.finishExam();
+                    });
                 } else {
-                    alert('Peringatan: dilarang pindah tab! (' + this.violationCount + '/' + this.maxViolations + ')');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Peringatan Keamanan',
+                        html: 'Dilarang pindah tab atau meninggalkan halaman ujian!<br>Pelanggaran dicatat: <b>' + this.violationCount + '/' + this.maxViolations + '</b>',
+                        confirmButtonText: 'Saya Mengerti',
+                        confirmButtonColor: '#435ebe',
+                    });
                 }
             }
         };
@@ -147,14 +165,28 @@ class="container-fluid no-select">
                 <h4 class="mb-0 fw-bold">{{ $exam->title }}</h4>
                 <p class="text-muted small mb-0">{{ $currentSubTest->title }}</p>
             </div>
-            <div class="col-md-4 text-center d-flex flex-column align-items-center">
-                <div class="timer-display shadow-sm mb-1 bg-white">
-                    <small class="text-muted d-block" style="font-size: 0.6rem; line-height: 1;">SISA WAKTU BAB</small>
-                    <i class="bi bi-clock-fill text-primary me-2"></i>
-                    <span class="fw-bold" x-text="Math.floor(sectionTimeLeft / 60) + ':' + (sectionTimeLeft % 60).toString().padStart(2, '0')"></span>
-                </div>
-                <div class="badge bg-warning text-dark shadow-sm">
-                    <i class="bi bi-hourglass-split me-1"></i> Waktu Soal: <span x-text="questionTimeLeft"></span>s
+            <div class="col-md-4 text-center d-flex justify-content-center">
+                <div class="d-flex align-items-center bg-white shadow-sm rounded-pill p-1 border">
+                    <!-- Timer Bab -->
+                    <div class="px-3 border-end d-flex align-items-center">
+                        <div class="me-2 text-start">
+                            <div class="text-muted fw-bold" style="font-size: 0.55rem; letter-spacing: 0.5px;">SISA WAKTU BAB</div>
+                            <div class="fs-5 fw-extrabold text-primary" style="font-family: 'Courier New', monospace; line-height: 1;">
+                                <span x-text="Math.floor(sectionTimeLeft / 60).toString().padStart(2, '0')"></span>:<span x-text="(sectionTimeLeft % 60).toString().padStart(2, '0')"></span>
+                            </div>
+                        </div>
+                        <i class="bi bi-clock-history fs-4 text-primary opacity-50"></i>
+                    </div>
+                    <!-- Timer Soal -->
+                    <div class="px-3 d-flex align-items-center">
+                        <i class="bi bi-hourglass-split fs-4 text-warning opacity-75 me-2"></i>
+                        <div class="text-start">
+                            <div class="text-muted fw-bold" style="font-size: 0.55rem; letter-spacing: 0.5px;">WAKTU SOAL</div>
+                            <div class="fs-5 fw-extrabold text-warning" style="font-family: 'Courier New', monospace; line-height: 1;">
+                                <span x-text="questionTimeLeft"></span><span style="font-size: 0.7rem">s</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="col-md-4 text-end">

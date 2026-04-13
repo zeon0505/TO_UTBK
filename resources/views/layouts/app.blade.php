@@ -7,6 +7,23 @@
     
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
     @livewireStyles
+    <style>
+        /* Smooth Dark Mode Overrides */
+        body { transition: background-color 0.3s ease, color 0.3s ease; }
+        .theme-dark { background-color: #1b1b29 !important; color: #ced4da !important; }
+        .theme-dark #main { background-color: #1b1b29 !important; }
+        .theme-dark .card { background-color: #252538 !important; border: 1px solid #2d2d44 !important; color: #e9ecef !important; }
+        .theme-dark .card-header, .theme-dark .card-footer { background-color: transparent !important; border-color: #2d2d44 !important; }
+        .theme-dark .sidebar-wrapper { background-color: #1e1e2d !important; border-right: 1px solid #2d2d44; }
+        .theme-dark header, .theme-dark footer { background-color: #1e1e2d !important; border-color: #2d2d44 !important; color: #ced4da !important; }
+        .theme-dark .table { color: #ced4da !important; border-color: #2d2d44 !important; }
+        .theme-dark .table thead th { background-color: #252538 !important; color: #9a9abb !important; border-color: #2d2d44 !important; }
+        .theme-dark .text-muted { color: #8a8a9a !important; }
+        .theme-dark .bg-light { background-color: #2d2d44 !important; color: #ced4da !important; }
+        .theme-dark .input-group-text, .theme-dark .form-control { background-color: #2d2d44 !important; border-color: #3f3f5a !important; color: #fff !important; }
+        .theme-dark .sidebar-link:hover { background-color: #2d2d44 !important; }
+        .theme-dark .sidebar-item.active > .sidebar-link { background-color: #435ebe !important; }
+    </style>
 </head>
 <body x-data="{ 
     darkMode: localStorage.getItem('theme') === 'dark',
@@ -71,6 +88,12 @@
                                 <span>Question Generator</span>
                             </a>
                         </li>
+                        <li class="sidebar-item {{ request()->is('admin/users') ? 'active' : '' }}">
+                            <a href="/admin/users" class='sidebar-link' wire:navigate>
+                                <i class="bi bi-people-fill"></i>
+                                <span>Monitor Peserta</span>
+                            </a>
+                        </li>
                         @endif
 
                         <li class="sidebar-item mt-4">
@@ -88,7 +111,7 @@
         </div>
         
         <div id="main">
-            <header class='mb-4 bg-white shadow-sm p-3'>
+            <header class='mb-4 shadow-sm p-3' :class="darkMode ? '' : 'bg-white'">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
                     <a href="#" class="burger-btn d-block d-xl-none">
                         <i class="bi bi-justify fs-3"></i>
@@ -105,7 +128,7 @@
                         </div>
 
                         <a href="/profile" class="text-end me-3 text-decoration-none" wire:navigate>
-                            <h6 class="mb-0 text-gray-600">{{ Auth::user()->name }}</h6>
+                            <h6 class="mb-0" :class="darkMode ? 'text-white' : 'text-gray-600'">{{ Auth::user()->name }}</h6>
                             <p class="mb-0 text-sm text-muted small">{{ Auth::user()->school }}</p>
                         </a>
                         <a href="/profile" class="avatar avatar-md border p-1 rounded-circle" wire:navigate>
@@ -121,7 +144,7 @@
                 </div>
             </div>
             
-            <footer class="mt-5 p-4 border-top">
+            <footer class="mt-5 p-4 border-top" :class="darkMode ? '' : 'bg-white'">
                 <div class="footer clearfix mb-0 text-muted container-fluid">
                     <div class="float-start">
                         <p>2026 &copy; Platform Edukasi UTBK</p>
@@ -134,6 +157,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     @livewireScripts
 </body>
 </html>

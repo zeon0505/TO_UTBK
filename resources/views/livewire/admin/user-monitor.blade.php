@@ -114,6 +114,12 @@
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     <div class="btn-group">
+                                        <button wire:click="toggleAdmin({{ $user->id }})" 
+                                                wire:confirm="Ubah status akses admin user ini?"
+                                                class="btn {{ $user->is_admin ? 'btn-light-danger' : 'btn-light-info' }} btn-sm rounded-pill px-2 me-1" 
+                                                title="{{ $user->is_admin ? 'Cabut Akses Admin' : 'Jadikan Admin' }}">
+                                            <i class="bi {{ $user->is_admin ? 'bi-shield-fill-x' : 'bi-shield-lock-fill' }}"></i>
+                                        </button>
                                         <button wire:click="editUser({{ $user->id }})" class="btn btn-light-primary btn-sm rounded-pill px-2" title="Edit">
                                             <i class="bi bi-pencil-square"></i>
                                         </button>
