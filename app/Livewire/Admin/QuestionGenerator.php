@@ -182,9 +182,18 @@ class QuestionGenerator extends Component
             ]);
 
             if ($response->successful()) {
-                $data = json_decode($response->json()['candidates'][0]['content']['parts'][0]['text'], true);
-                $count = 0;
+                $rawText = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                
+                // BERSIHKAN MARKDOWN DARI AI
+                $cleanJson = preg_replace('/^```json|```$/m', '', $rawText);
+                $data = json_decode(trim($cleanJson), true);
 
+                if (!$data) {
+                    \Illuminate\Support\Facades\Log::error('Gagal Decode JSON AI: ' . $rawText);
+                    throw new \Exception('Format data dari AI tidak valid. Silakan coba lagi.');
+                }
+
+                $count = 0;
                 foreach ($data as $item) {
                     $question = Question::create([
                         'sub_test_id' => $this->selectedSubTest,
