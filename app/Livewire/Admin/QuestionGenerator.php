@@ -217,7 +217,8 @@ class QuestionGenerator extends Component
                 session()->flash('success', "Magic Success! {$count} soal berhasil dipilah dan disimpan dengan sempurna.");
             }
         } catch (\Exception $e) {
-            session()->flash('error', 'Gagal Memproses: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Gagal Simpan Manual: ' . $e->getMessage());
+            session()->flash('error', 'SIMPAN GAGAL: ' . $e->getMessage());
         }
 
         $this->isGenerating = false;
