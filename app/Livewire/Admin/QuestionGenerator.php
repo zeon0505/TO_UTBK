@@ -52,10 +52,10 @@ class QuestionGenerator extends Component
 
             $apiKey = env('GEMINI_API_KEY'); 
 
-            // Menggunakan gemini-pro-vision (paling stabil untuk Vision 1.0)
+            // Menggunakan Gemini 2.0-Flash (Model terbaru di akun Anda)
             $response = Http::timeout(120)
                 ->withHeaders(['Content-Type' => 'application/json'])
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key={$apiKey}", [
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$apiKey}", [
                     'contents' => [
                         [
                             'parts' => [
@@ -80,40 +80,22 @@ class QuestionGenerator extends Component
 
             if ($response->successful()) {
                 $result = $response->json();
-                
                 $textResult = $result['candidates'][0]['content']['parts'][0]['text'] ?? null;
 
                 if (!$textResult) {
-                    throw new \Exception('AI berhasil terhubung tapi tidak menemukan teks soal dalam file tersebut.');
+                    throw new \Exception('AI terhubung tapi tidak menemukan soal.');
                 }
                 
-                // Gunakan concat agar tidak menimpa teks yang sudah ada
                 $this->bulkText = trim($this->bulkText . "\n\n" . $textResult);
                 $this->mode = 'manual';
-                session()->flash('success', 'Berhasil! Teks telah disematkan di kotak input di bawah.');
+                session()->flash('success', 'Magic Scan Berhasil!');
             } else {
                 $errorBody = $response->json();
-                $errorMsg = $errorBody['error']['message'] ?? 'Kesalahan tidak diketahui dari Server AI.';
-                throw new \Exception($errorMsg);
+                throw new \Exception($errorBody['error']['message'] ?? 'Gagal memproses.');
             }
 
         } catch (\Exception $e) {
-            // DIAGNOSTIK: Ambil daftar model yang tersedia untuk user ini
-            $models = [];
-            try {
-                $apiKey = env('GEMINI_API_KEY');
-                $listResp = Http::get("https://generativelanguage.googleapis.com/v1beta/models?key={$apiKey}");
-                if ($listResp->successful()) {
-                    $allModels = $listResp->json();
-                    foreach ($allModels['models'] ?? [] as $m) {
-                        $models[] = str_replace('models/', '', $m['name']);
-                    }
-                }
-            } catch (\Exception $de) {}
-
-            $modelList = !empty($models) ? " (Model tersedia di akun Anda: " . implode(', ', array_slice($models, 0, 5)) . ")" : "";
-            
-            session()->flash('error', 'Error Scan: ' . $e->getMessage() . $modelList);
+            session()->flash('error', 'Scan Gagal: ' . $e->getMessage());
         }
 
         $this->isGenerating = false;
