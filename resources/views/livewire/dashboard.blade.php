@@ -169,7 +169,12 @@
                                     @elseif($exam->user_status == 'IN_PROGRESS')
                                         <a href="/exam/{{ $exam->id }}?subject={{ $exam->last_subject_id }}" class="btn btn-warning btn-sm rounded-pill px-4 shadow-sm" wire:navigate>Lanjutkan</a>
                                     @elseif($exam->user_status == 'FINISHED')
-                                        <a href="/rationalization/{{ $exam->result_id }}" class="btn btn-success btn-sm rounded-pill px-4 shadow-sm" wire:navigate>Lihat Hasil</a>
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            <a href="/rationalization/{{ $exam->result_id }}" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm" wire:navigate>Hasil</a>
+                                            <a href="/certificate/{{ $exam->result_id }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm">
+                                                <i class="bi bi-printer"></i>
+                                            </a>
+                                        </div>
                                     @endif
                                 </td>
                             </tr>

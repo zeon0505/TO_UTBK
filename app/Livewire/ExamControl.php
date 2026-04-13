@@ -10,6 +10,8 @@ use App\Models\Option;
 use App\Models\Result;
 use App\Models\UserAnswer;
 use Carbon\Carbon;
+use App\Services\IRTService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
 class ExamControl extends Component
@@ -208,11 +210,24 @@ class ExamControl extends Component
         $this->result->update(['total_score' => $total]);
     }
 
-    public function finishExam($remainingTime = 0)
+    public function finishExam()
     {
-        $this->saveAnswer($remainingTime);
-        $this->result->update(['finished_at' => now()]);
+        $this->saveAnswer();
+        
+        $this->result->update([
+            'finished_at' => now(),
+        ]);
+
+        // Hitung skor IRT secara real-time
+        try {
+            IRTService::updateAllUserScores();
+        } catch (\Exception $e) {
+            Log::error("Gagal update score IRT: " . $e->getMessage());
+        }
+
         $this->isFinished = true;
+        
+        session()->flash('success', 'Ujian telah berhasil dikumpulkan!');
     }
 
     public function render()

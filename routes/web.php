@@ -22,6 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/leaderboard', \App\Livewire\Leaderboard::class)->name('leaderboard');
     Route::get('/exam/{examId}', ExamControl::class)->name('exam.show');
     Route::get('/review/{resultId}', \App\Livewire\ExamReview::class)->name('exam.review');
+    Route::get('/certificate/{resultId}', \App\Livewire\Certificate::class)->name('certificate');
     
     // Admin Routes
     Route::middleware('can:admin')->group(function() {

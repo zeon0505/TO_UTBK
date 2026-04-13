@@ -150,6 +150,38 @@
         }
         document.oncontextmenu = null;
         document.oncopy = null;
+    },
+    confirmFinish() {
+        Swal.fire({
+            title: 'Yakin ingin selesai?',
+            text: "Pastikan semua jawaban sudah terisi. Anda tidak dapat kembali setelah mengumpulkan!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#435ebe',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Kumpulkan Sekarang!',
+            cancelButtonText: 'Kembali'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                this.stopAntiCheat();
+                $wire.finishExam();
+            }
+        });
+    },
+    confirmNextSection() {
+        Swal.fire({
+            title: 'Lanjut Sub-Tes?',
+            text: "Waktu sub-tes ini belum habis, tapi Anda tidak bisa kembali ke bab ini jika sudah berpindah!",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#435ebe',
+            confirmButtonText: 'Ya, Lanjut Berikutnya',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $wire.moveToNextSection();
+            }
+        });
     }
 }
 " 
@@ -261,9 +293,15 @@ class="container-fluid no-select">
                 </div>
             </div>
             <div class="col-md-4 text-end">
-                <button class="btn btn-danger btn-sm rounded-pill px-3" onclick="confirm('Kumpulkan sekarang?') ? @this.finishExam() : null">
-                    Kumpulkan
-                </button>
+                @if($this->currentSubTestIndex < count($this->exam->subTests) - 1)
+                    <button @click="confirmNextSection()" class="btn btn-primary rounded-pill px-4 shadow-sm border-0" style="background: linear-gradient(45deg, #435ebe, #6c8ef2);">
+                        Bab Berikutnya <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                @else
+                    <button @click="confirmFinish()" class="btn btn-danger rounded-pill px-4 shadow-sm border-0" style="background: linear-gradient(45deg, #eb3b5a, #fa8231);">
+                        <i class="bi bi-send-check me-1"></i> Kumpulkan
+                    </button>
+                @endif
             </div>
         </div>
     </div>
