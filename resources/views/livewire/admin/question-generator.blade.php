@@ -62,8 +62,12 @@
                                 </div>
                         @else
                             <div class="alert alert-secondary border-0 small mb-3" style="background-color: rgba(255,255,255,0.03); color: #cbd5e1;">
-                                <h6 class="fw-bold mb-1"><i class="bi bi-info-circle me-1"></i> Format Fast-Entry:</h6>
-                                <p class="mb-0 text-muted">Baris 1: Pertanyaan<br>Baris 2-dst: Pilihan Jawaban<br>Tambahkan <b>*</b> di akhir pilihan yang benar.</p>
+                                <h6 class="fw-bold mb-1"><i class="bi bi-info-circle me-1"></i> Format Bulk Import:</h6>
+                                <p class="mb-0 text-muted">
+                                    - Pisahkan antar soal dengan <b>Baris Kosong (Double Enter)</b>.<br>
+                                    - Baris 1: Pertanyaan. Baris selanjutnya: Pilihan Jawaban.<br>
+                                    - Tambahkan <b>*</b> di akhir jawaban yang benar.
+                                </p>
                             </div>
                             <form wire:submit.prevent="saveManual">
                                 <div class="row mb-3">
@@ -72,15 +76,14 @@
                                         <input type="number" step="0.1" class="form-control" wire:model="manualWeight">
                                         @error('manualWeight') <span class="text-danger small">{{ $message }}</span> @enderror
                                     </div>
-                                    <div class="col-6">
-                                        <label class="form-label fw-bold small">Preview</label>
-                                        <div class="form-text mt-2">Diterapkan ke soal di bawah.</div>
+                                    <div class="col-6 text-end">
+                                        <span class="badge bg-info">Pro Mode: Multi-Entry</span>
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Input Teks Soal & Opsi</label>
-                                    <textarea class="form-control" wire:model="bulkText" rows="10" 
-                                        placeholder="Ketik soal di sini...&#10;A. Pilihan 1&#10;B. Pilihan 2*&#10;C. Pilihan 3"></textarea>
+                                    <label class="form-label fw-bold">Input Massal Soal & Opsi</label>
+                                    <textarea class="form-control" wire:model="bulkText" rows="12" 
+                                        placeholder="Soal 1...&#10;A. Opsi 1&#10;B. Opsi 2*&#10;&#10;Soal 2...&#10;A. Opsi 1*&#10;B. Opsi 2"></textarea>
                                     @error('bulkText') <span class="text-danger small">{{ $message }}</span> @enderror
                                 </div>
                         @endif

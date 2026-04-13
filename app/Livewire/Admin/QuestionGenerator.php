@@ -34,44 +34,46 @@ class QuestionGenerator extends Component
             'manualWeight' => 'required|numeric|min:0',
         ]);
 
-        // Parsing Logika: Pisahkan baris
-        $lines = explode("\n", str_replace("\r", "", $this->bulkText));
-        $lines = array_values(array_filter(array_map('trim', $lines)));
+        // 1. Pisahkan teks menjadi blok-blok soal berdasarkan baris kosong ganda
+        $blocks = explode("\n\n", str_replace("\r", "", $this->bulkText));
+        $count = 0;
 
-        if (count($lines) < 2) {
-            session()->flash('error', 'Format salah. Masukkan soal dan minimal 2 pilihan.');
-            return;
-        }
+        foreach ($blocks as $block) {
+            $lines = explode("\n", trim($block));
+            $lines = array_values(array_filter(array_map('trim', $lines)));
 
-        // Baris pertama dianggap Soal
-        $questionText = $lines[0];
-        
-        $question = Question::create([
-            'sub_test_id' => $this->selectedSubTest,
-            'question_text' => $questionText,
-            'irt_weight' => $this->manualWeight,
-        ]);
+            if (count($lines) < 2) continue;
 
-        // Baris selanjutnya dianggap Opsi jika ada awalan A., B., dll atau langsung teks
-        for ($i = 1; $i < count($lines); $i++) {
-            $line = $lines[$i];
-            $isCorrect = str_ends_with($line, '*');
+            // Baris pertama blok = Soal
+            $questionText = $lines[0];
             
-            // Bersihkan tanda bintang dan awalan A. B. C. jika ada
-            $optionText = rtrim($line, '*');
-            $optionText = preg_replace('/^[A-E][.\s)]+/', '', $optionText);
+            $question = Question::create([
+                'sub_test_id' => $this->selectedSubTest,
+                'question_text' => $questionText,
+                'irt_weight' => $this->manualWeight,
+            ]);
 
-            if (!empty($optionText)) {
-                Option::create([
-                    'question_id' => $question->id,
-                    'option_text' => trim($optionText),
-                    'is_correct' => $isCorrect,
-                ]);
+            // Baris selanjutnya = Opsi
+            for ($i = 1; $i < count($lines); $i++) {
+                $line = $lines[$i];
+                $isCorrect = str_ends_with($line, '*');
+                
+                $optionText = rtrim($line, '*');
+                $optionText = preg_replace('/^[A-E][.\s)]+/', '', $optionText);
+
+                if (!empty($optionText)) {
+                    Option::create([
+                        'question_id' => $question->id,
+                        'option_text' => trim($optionText),
+                        'is_correct' => $isCorrect,
+                    ]);
+                }
             }
+            $count++;
         }
 
         $this->reset(['bulkText']);
-        session()->flash('success', 'Soal berhasil di-parse dan disimpan!');
+        session()->flash('success', "Berhasil menyimpan {$count} soal sekaligus!");
     }
 
     public function generate()
