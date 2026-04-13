@@ -102,6 +102,48 @@ class QuestionGenerator extends Component
         $this->scannedImage = null; // Reset upload
     }
 
+    public function smartAIParse()
+    {
+        if (empty(trim($this->bulkText))) {
+            session()->flash('error', 'Silakan paste teks soal terlebih dahulu.');
+            return;
+        }
+
+        $this->isGenerating = true;
+
+        try {
+            $apiKey = env('GEMINI_API_KEY');
+            $response = Http::timeout(60)->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$apiKey}", [
+                'contents' => [
+                    ['parts' => [
+                        ['text' => "Tolong rapikan teks soal yang berantakan berikut ini menjadi format standar:
+                        FORMAT:
+                        [Teks Soal]
+                        A. Pilihan 1
+                        B. Pilihan 2
+                        * Pilihan Benar (Kasih tanda bintang)
+                        Pembahasan: [Alasan]
+                        Poin: 5
+
+                        TEKS YANG HARUS DIRAPIKAN:
+                        {$this->bulkText}"]
+                    ]]
+                ]
+            ]);
+
+            if ($response->successful()) {
+                $result = $response->json();
+                $cleanedText = $result['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                $this->bulkText = trim($cleanedText);
+                session()->flash('success', 'AI berhasil merapikan format soal Anda!');
+            }
+        } catch (\Exception $e) {
+            session()->flash('error', 'Gagal merapikan: ' . $e->getMessage());
+        }
+
+        $this->isGenerating = false;
+    }
+
     public function saveManual()
     {
         $this->validate([

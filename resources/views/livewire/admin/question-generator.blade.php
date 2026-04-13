@@ -101,10 +101,16 @@
                                         <span class="badge bg-info">Pro Mode: Multi-Entry</span>
                                     </div>
                                 </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label fw-bold mb-0">Input Massal Soal & Opsi</label>
+                                    <button type="button" wire:click="smartAIParse" wire:loading.attr="disabled" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
+                                        <span wire:loading.remove wire:target="smartAIParse">🪄 AI Smart Format</span>
+                                        <span wire:loading wire:target="smartAIParse">Merapikan...</span>
+                                    </button>
+                                </div>
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Input Massal Soal & Opsi</label>
                                     <textarea class="form-control" wire:model="bulkText" rows="12" 
-                                        placeholder="Soal 1...&#10;A. Opsi 1&#10;B. Opsi 2*&#10;&#10;Soal 2...&#10;A. Opsi 1*&#10;B. Opsi 2"></textarea>
+                                        placeholder="Paste teks soal berantakan di sini..."></textarea>
                                     @error('bulkText') <span class="text-danger small">{{ $message }}</span> @enderror
                                 </div>
                         @endif
