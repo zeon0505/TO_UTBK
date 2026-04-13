@@ -52,10 +52,10 @@ class QuestionGenerator extends Component
 
             $apiKey = env('GEMINI_API_KEY'); 
             
-            // Tambahkan timeout 120 detik karena PDF bisa berat
+            // Gunakan v1 (stable) alih-alih v1beta
             $response = Http::timeout(120)
                 ->withHeaders(['Content-Type' => 'application/json'])
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
+                ->post("https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
                     'contents' => [
                         [
                             'parts' => [
