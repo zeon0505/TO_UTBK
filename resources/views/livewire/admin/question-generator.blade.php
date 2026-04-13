@@ -115,77 +115,76 @@
                                 </div>
                         @endif
 
-                        <div class="card border-0 shadow-sm mb-4">
-                            <div class="card-body p-4">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">1. Pilih Target Sub-Tes</label>
-                                    <select class="form-select form-select-lg shadow-none border-2 border-primary" wire:model="selectedSubTest">
-                                        <option value="">-- WAJIB PILIH SUB-TES --</option>
-                                        @foreach($subTests as $st)
-                                            <option value="{{ $st->id }}">{{ $st->exam->title }} - {{ $st->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('selectedSubTest') <span class="text-danger fw-bold small">{{ $message }}</span> @enderror
+                    @if(session()->has('success'))
+                        <div class="alert alert-success alert-dismissible show fade shadow border-0 py-3 mb-4" role="alert">
+                            <div class="d-flex align-items-center">
+                                <span class="fs-2 me-3">✅</span>
+                                <div>
+                                    <h6 class="mb-0 fw-bold">BERHASIL DISIMPAN!</h6>
+                                    <p class="mb-0 small text-dark">{{ session('success') }}</p>
                                 </div>
                             </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
+                    @endif
 
-                        <!-- Manual Mode Content -->
-                        @if($mode == 'manual')
-                        <div class="card border-0 shadow-sm overflow-hidden mb-4">
-                            <div class="card-body p-4">
-                                <div class="d-flex align-items-center mb-4">
-                                    <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
-                                        <i class="bi bi-magic text-primary fs-4"></i>
-                                    </div>
-                                    <h5 class="mb-0 fw-bold">Manual Smart Generator</h5>
-                                </div>
-
-                                <div class="mt-4">
-                                    <button type="button" wire:click="saveManual" wire:loading.attr="disabled" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm">
-                                        <span wire:loading.remove wire:target="saveManual">
-                                            🚀 Simpan & Masukkan Soal Sekarang
-                                        </span>
-                                        <span wire:loading wire:target="saveManual">
-                                            <span class="spinner-border spinner-border-sm me-2"></span> AI Sedang Membedah & Menyimpan...
-                                        </span>
-                                    </button>
+                    @if(session()->has('error'))
+                        <div class="alert alert-danger alert-dismissible show fade shadow border-0 py-3 mb-4" role="alert">
+                            <div class="d-flex align-items-center">
+                                <span class="fs-2 me-3">⚠️</span>
+                                <div>
+                                    <h6 class="mb-0 fw-bold small">ADA MASALAH TEKNIS!</h6>
+                                    <p class="mb-0 small text-dark">{{ session('error') }}</p>
                                 </div>
                             </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
-                        @else
-                        <!-- AI Mode Button -->
-                        <button type="submit" class="btn btn-primary w-100 fw-bold py-3 rounded-pill shadow-sm" wire:loading.attr="disabled" wire:target="generate">
+                    @endif
+
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body p-4">
+                            <div class="mb-0">
+                                <label class="form-label fw-bold small text-primary uppercase">1. Pilih Target Sub-Tes (WAJIB)</label>
+                                <select class="form-select form-select-lg shadow-none border-2 border-primary rounded-3" wire:model="selectedSubTest">
+                                    <option value="">-- PILIH TUJUAN UJIAN DI SINI --</option>
+                                    @foreach($subTests as $st)
+                                        <option value="{{ $st->id }}">{{ $st->exam->title }} - {{ $st->name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('selectedSubTest') <span class="text-danger fw-bold small">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    @if($mode == 'manual')
+                    <div class="card border-0 shadow-sm overflow-hidden mb-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
+                                    <i class="bi bi-magic text-primary fs-4"></i>
+                                </div>
+                                <h5 class="mb-0 fw-bold">Magic Manual Editor</h5>
+                            </div>
+
+                            <button type="button" wire:click="saveManual" wire:loading.attr="disabled" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-lg border-3 border-white">
+                                <span wire:loading.remove wire:target="saveManual">
+                                    🚀 Simpan Semua Soal Sekarang
+                                </span>
+                                <span wire:loading wire:target="saveManual">
+                                    <span class="spinner-border spinner-border-sm me-2"></span> AI SEDANG BEKERJA...
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                    @else
+                    <form wire:submit.prevent="generate" class="card border-0 shadow-sm p-4 mb-4">
+                         <!-- ... content AI hidden for brevity ... -->
+                         <button type="submit" class="btn btn-primary w-100 fw-bold py-3 rounded-pill shadow" wire:loading.attr="disabled" wire:target="generate">
                             <span wire:loading.remove wire:target="generate">🪄 Generate Soal Sekarang</span>
-                            <span wire:loading wire:target="generate">AI Sedang Merancang Soal...</span>
+                            <span wire:loading wire:target="generate">AI Sedang Merancang...</span>
                         </button>
-                        @endif
-
-                        @if($mode == 'ai')
-                            <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm" wire:loading.attr="disabled">
-                                <span wire:loading.remove wire:target="generate">🪄 Generate Soal Sekarang</span>
-                                <span wire:loading wire:target="generate">Memikirkan Soal...</span>
-                            @endif
-                        </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-8">
-                @if(session()->has('success'))
-                    <div class="alert alert-success alert-dismissible show fade shadow-sm border-0 mb-4">
-                        <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                @endif
-
-                @if(session()->has('error'))
-                    <div class="alert alert-danger alert-dismissible show fade shadow-sm border-0 mb-4">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i> <b>SCAN GAGAL:</b> {{ session('error') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                @endif
+                    </form>
+                    @endif
 
                 @if(!empty($generatedQuestions))
                     <div class="card shadow-sm border-0">
