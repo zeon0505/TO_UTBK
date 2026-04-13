@@ -55,7 +55,7 @@ class QuestionGenerator extends Component
             // Menggunakan versi LITE agar kuota lebih hemat dan longgar
             $response = Http::timeout(120)
                 ->withHeaders(['Content-Type' => 'application/json'])
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent?key={$apiKey}", [
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
                     'contents' => [
                         [
                             'parts' => [
@@ -113,7 +113,7 @@ class QuestionGenerator extends Component
 
         try {
             $apiKey = env('GEMINI_API_KEY');
-            $response = Http::timeout(60)->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent?key={$apiKey}", [
+            $response = Http::timeout(60)->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
                 'contents' => [
                     ['parts' => [
                         ['text' => "Tolong rapikan teks soal yang berantakan berikut ini menjadi format standar:
@@ -157,7 +157,7 @@ class QuestionGenerator extends Component
             $apiKey = env('GEMINI_API_KEY');
             if (!$apiKey) throw new \Exception('API Key Gemini belum diset di .env');
 
-            $response = Http::timeout(120)->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent?key={$apiKey}", [
+            $response = Http::timeout(120)->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
                 'contents' => [
                     ['parts' => [
                         ['text' => "Tolong parsing teks berantakan ini menjadi JSON array untuk soal UTBK. 
