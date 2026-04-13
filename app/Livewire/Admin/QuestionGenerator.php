@@ -98,7 +98,22 @@ class QuestionGenerator extends Component
             }
 
         } catch (\Exception $e) {
-            session()->flash('error', 'Error Scan: ' . $e->getMessage());
+            // DIAGNOSTIK: Ambil daftar model yang tersedia untuk user ini
+            $models = [];
+            try {
+                $apiKey = env('GEMINI_API_KEY');
+                $listResp = Http::get("https://generativelanguage.googleapis.com/v1beta/models?key={$apiKey}");
+                if ($listResp->successful()) {
+                    $allModels = $listResp->json();
+                    foreach ($allModels['models'] ?? [] as $m) {
+                        $models[] = str_replace('models/', '', $m['name']);
+                    }
+                }
+            } catch (\Exception $de) {}
+
+            $modelList = !empty($models) ? " (Model tersedia di akun Anda: " . implode(', ', array_slice($models, 0, 5)) . ")" : "";
+            
+            session()->flash('error', 'Error Scan: ' . $e->getMessage() . $modelList);
         }
 
         $this->isGenerating = false;
