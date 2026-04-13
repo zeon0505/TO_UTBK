@@ -115,76 +115,51 @@
                                 </div>
                         @endif
 
-                        <div class="mb-4">
-                            <!-- Flash Messages -->
-                            @if (session()->has('success'))
-                                <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
-                                    <strong>✅ Sukses!</strong> {{ session('success') }}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body p-4">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">1. Pilih Target Sub-Tes</label>
+                                    <select class="form-select form-select-lg shadow-none border-2 border-primary" wire:model="selectedSubTest">
+                                        <option value="">-- WAJIB PILIH SUB-TES --</option>
+                                        @foreach($subTests as $st)
+                                            <option value="{{ $st->id }}">{{ $st->exam->title }} - {{ $st->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('selectedSubTest') <span class="text-danger fw-bold small">{{ $message }}</span> @enderror
                                 </div>
-                            @endif
-
-                            @if (session()->has('error'))
-                                <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm py-3" role="alert">
-                                    <div class="d-flex">
-                                        <span class="fs-4 me-3">⚠️</span>
-                                        <div>
-                                            <h6 class="alert-heading fw-bold mb-1">PROSES TERHENTI!</h6>
-                                            <p class="mb-0 small text-dark">{{ session('error') }}</p>
-                                        </div>
-                                    </div>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                </div>
-                            @endif
-
-                            @if($mode == 'manual')
-                                <div class="card border-0 shadow-sm overflow-hidden mb-4">
-                                    <div class="card-body p-4">
-                                        <div class="d-flex align-items-center mb-4">
-                                            <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
-                                                <i class="bi bi-magic text-primary fs-4"></i>
-                                            </div>
-                                            <h5 class="mb-0 fw-bold">Magic Manual Editor</h5>
-                                        </div>
-
-                                        <div class="row">
-                                            <div class="col-md-12">
-                                                <div class="mb-3">
-                                                    <label class="form-label fw-bold">Target Sub-Tes</label>
-                                                    <select class="form-select form-select-lg shadow-none border-2" wire:model="selectedSubTest">
-                                                        <option value="">-- Pilih Sub-Tes --</option>
-                                                        @foreach($subTests as $st)
-                                                            <option value="{{ $st->id }}">{{ $st->exam->title }} - {{ $st->title }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                    @error('selectedSubTest') <span class="text-danger small">{{ $message }}</span> @enderror
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="mt-4">
-                                            <button type="button" wire:click="saveManual" wire:loading.attr="disabled" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm">
-                                                <span wire:loading.remove wire:target="saveManual">
-                                                    🚀 Mulai Masukkan Soal ke Database
-                                                </span>
-                                                <span wire:loading wire:target="saveManual">
-                                                    <span class="spinner-border spinner-border-sm me-2"></span> AI Sedang Membedah & Menyimpan...
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            @else
-                                <label class="form-label fw-bold">Target Sub-Tes</label>
-                                <select class="form-select" wire:model="selectedSubTest">
-                                    <option value="">-- Pilih Sub-Tes --</option>
-                                    @foreach($subTests as $st)
-                                        <option value="{{ $st->id }}">{{ $st->exam->title }} - {{ $st->title }}</option>
-                                    @endforeach
-                                </select>
-                                @error('selectedSubTest') <span class="text-danger small">{{ $message }}</span> @enderror
-                            @endif
+                            </div>
                         </div>
+
+                        <!-- Manual Mode Content -->
+                        @if($mode == 'manual')
+                        <div class="card border-0 shadow-sm overflow-hidden mb-4">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center mb-4">
+                                    <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
+                                        <i class="bi bi-magic text-primary fs-4"></i>
+                                    </div>
+                                    <h5 class="mb-0 fw-bold">Manual Smart Generator</h5>
+                                </div>
+
+                                <div class="mt-4">
+                                    <button type="button" wire:click="saveManual" wire:loading.attr="disabled" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm">
+                                        <span wire:loading.remove wire:target="saveManual">
+                                            🚀 Simpan & Masukkan Soal Sekarang
+                                        </span>
+                                        <span wire:loading wire:target="saveManual">
+                                            <span class="spinner-border spinner-border-sm me-2"></span> AI Sedang Membedah & Menyimpan...
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        @else
+                        <!-- AI Mode Button -->
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-3 rounded-pill shadow-sm" wire:loading.attr="disabled" wire:target="generate">
+                            <span wire:loading.remove wire:target="generate">🪄 Generate Soal Sekarang</span>
+                            <span wire:loading wire:target="generate">AI Sedang Merancang Soal...</span>
+                        </button>
+                        @endif
 
                         @if($mode == 'ai')
                             <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm" wire:loading.attr="disabled">
