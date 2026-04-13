@@ -141,6 +141,13 @@
                     </div>
                 @endif
 
+                @if(session()->has('error'))
+                    <div class="alert alert-danger alert-dismissible show fade shadow-sm border-0 mb-4">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i> <b>SCAN GAGAL:</b> {{ session('error') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
                 @if(!empty($generatedQuestions))
                     <div class="card shadow-sm border-0">
                         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">

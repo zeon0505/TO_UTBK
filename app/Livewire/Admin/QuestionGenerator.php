@@ -81,21 +81,20 @@ class QuestionGenerator extends Component
             if ($response->successful()) {
                 $result = $response->json();
                 
-                // Cek isi response agar tidak kosong
-                if (!isset($result['candidates'][0]['content']['parts'][0]['text'])) {
-                    \Illuminate\Support\Facades\Log::error('AI Response Kosong:', $result);
-                    throw new \Exception('AI tidak memberikan hasil teks. Pastikan isi PDF terbaca/jelas.');
-                }
+                $textResult = $result['candidates'][0]['content']['parts'][0]['text'] ?? null;
 
-                $textResult = $result['candidates'][0]['content']['parts'][0]['text'];
+                if (!$textResult) {
+                    throw new \Exception('AI berhasil terhubung tapi tidak menemukan teks soal dalam file tersebut.');
+                }
                 
-                $this->bulkText .= ($this->bulkText ? "\n\n" : "") . trim($textResult);
+                // Gunakan concat agar tidak menimpa teks yang sudah ada
+                $this->bulkText = trim($this->bulkText . "\n\n" . $textResult);
                 $this->mode = 'manual';
-                session()->flash('success', 'File berhasil di-scan oleh AI!');
+                session()->flash('success', 'Berhasil! Teks telah disematkan di kotak input di bawah.');
             } else {
-                $errorData = $response->json();
-                $errorMessage = $errorData['error']['message'] ?? 'AI gagal memproses file.';
-                throw new \Exception($errorMessage);
+                $errorBody = $response->json();
+                $errorMsg = $errorBody['error']['message'] ?? 'Kesalahan tidak diketahui dari Server AI.';
+                throw new \Exception($errorMsg);
             }
 
         } catch (\Exception $e) {
