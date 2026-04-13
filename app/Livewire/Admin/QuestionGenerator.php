@@ -149,76 +149,69 @@ class QuestionGenerator extends Component
         $this->validate([
             'bulkText' => 'required',
             'selectedSubTest' => 'required',
-            'manualWeight' => 'required|numeric|min:0',
         ]);
 
-        // 1. Pisahkan teks menjadi blok-blok soal berdasarkan baris kosong ganda
-        $blocks = explode("\n\n", str_replace("\r", "", $this->bulkText));
-        $count = 0;
+        $this->isGenerating = true;
 
-        foreach ($blocks as $block) {
-            $lines = explode("\n", trim($block));
-            $lines = array_values(array_filter(array_map('trim', $lines)));
+        try {
+            $apiKey = env('GEMINI_API_KEY');
+            // AI akan membedah teks kacau Anda menjadi data yang rapi
+            $response = Http::timeout(120)->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$apiKey}", [
+                'contents' => [
+                    ['parts' => [
+                        ['text' => "Bedah teks soal berantakan ini menjadi JSON yang rapi. 
+                        Pisahkan mana soal, mana pilihan jawaban, mana jawaban benar, dan mana pembahasan.
+                        PENTING: Pastikan instruksi soal yang panjang tidak masuk ke pilihan jawaban.
+                        
+                        OUTPUT HARUS JSON ARRAY:
+                        [{
+                            'question': '...',
+                            'explanation': '...',
+                            'weight': 1.0,
+                            'options': [
+                                {'text': '...', 'point': 5},
+                                {'text': '...', 'point': 0}
+                            ]
+                        }]
 
-            if (count($lines) < 2) continue;
-
-            $questionText = $lines[0];
-            $explanation = null;
-            $customWeight = $this->manualWeight; // Default dari input field
-            $optionsData = [];
-
-            // Proses baris-baris setelah pertanyaan
-            for ($i = 1; $i < count($lines); $i++) {
-                $line = $lines[$i];
-
-                if (str_starts_with(strtolower($line), 'pembahasan:')) {
-                    $explanation = trim(substr($line, 11));
-                } elseif (str_starts_with(strtolower($line), 'poin:')) {
-                    $customWeight = (float) trim(substr($line, 5));
-                } else {
-                    // Dianggap sebagai pilihan jawaban
-                    $optionsData[] = [
-                        'text' => rtrim($line, '*'),
-                        'is_correct' => str_ends_with($line, '*'),
-                    ];
-                }
-            }
-            
-            $question = Question::create([
-                'sub_test_id' => $this->selectedSubTest,
-                'text' => $questionText,
-                'type' => 'Pilihan Ganda',
-                'explanation' => $explanation,
-                'irt_weight' => $customWeight,
+                        TEKS:
+                        {$this->bulkText}"]
+                    ]]
+                ],
+                'generationConfig' => ['response_mime_type' => 'application/json']
             ]);
 
-            foreach ($optionsData as $opt) {
-                // Bersihkan awalan A. B. C.
-                $cleanText = preg_replace('/^[A-E][.\s)]+/', '', $opt['text']);
-                
-                // Deteksi poin kustom dalam format {angka}
-                $finalPoint = 0;
-                if (preg_match('/\{(\d+)\}/', $cleanText, $matches)) {
-                    $finalPoint = (int) $matches[1];
-                    $cleanText = trim(str_replace($matches[0], '', $cleanText));
-                } elseif ($opt['is_correct']) {
-                    // Jika ditandai bintang (*) tapi tidak ada {x}, pakai manualWeight sebagai poin standar
-                    $finalPoint = (int) $this->manualWeight;
+            if ($response->successful()) {
+                $data = json_decode($response->json()['candidates'][0]['content']['parts'][0]['text'], true);
+                $count = 0;
+
+                foreach ($data as $item) {
+                    $question = Question::create([
+                        'sub_test_id' => $this->selectedSubTest,
+                        'text' => $item['question'],
+                        'type' => 'Pilihan Ganda',
+                        'explanation' => $item['explanation'] ?? null,
+                        'irt_weight' => $item['weight'] ?? 1.0,
+                    ]);
+
+                    foreach ($item['options'] as $opt) {
+                        Option::create([
+                            'question_id' => $question->id,
+                            'text' => $opt['text'],
+                            'point' => $opt['point'] ?? 0,
+                        ]);
+                    }
+                    $count++;
                 }
 
-                if (!empty($cleanText)) {
-                    Option::create([
-                        'question_id' => $question->id,
-                        'text' => trim($cleanText), // Sesuai kolom database: text
-                        'point' => $finalPoint,     // Sesuai kolom database: point
-                    ]);
-                }
+                $this->reset(['bulkText']);
+                session()->flash('success', "Magic Success! {$count} soal berhasil dipilah dan disimpan dengan sempurna.");
             }
-            $count++;
+        } catch (\Exception $e) {
+            session()->flash('error', 'Gagal Memproses: ' . $e->getMessage());
         }
 
-        $this->reset(['bulkText']);
-        session()->flash('success', "Berhasil menyimpan {$count} soal sekaligus!");
+        $this->isGenerating = false;
     }
 
     public function generate()
