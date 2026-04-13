@@ -15,6 +15,49 @@ class QuestionGenerator extends Component
     public $selectedSubTest = '';
     public $generatedQuestions = [];
     public $isGenerating = false;
+    public $mode = 'manual'; // Default mode
+
+    // Manual Fields
+    public $manualQuestion = '';
+    public $manualOptions = [
+        ['text' => '', 'is_correct' => false],
+        ['text' => '', 'is_correct' => false],
+        ['text' => '', 'is_correct' => false],
+        ['text' => '', 'is_correct' => false],
+    ];
+
+    public function setMode($mode)
+    {
+        $this->mode = $mode;
+        $this->generatedQuestions = [];
+    }
+
+    public function saveManual()
+    {
+        $this->validate([
+            'manualQuestion' => 'required',
+            'selectedSubTest' => 'required',
+        ]);
+
+        $question = Question::create([
+            'sub_test_id' => $this->selectedSubTest,
+            'question_text' => $this->manualQuestion,
+            'irt_weight' => 1.0,
+        ]);
+
+        foreach ($this->manualOptions as $opt) {
+            if (!empty($opt['text'])) {
+                Option::create([
+                    'question_id' => $question->id,
+                    'option_text' => $opt['text'],
+                    'is_correct' => $opt['is_correct'],
+                ]);
+            }
+        }
+
+        $this->reset(['manualQuestion', 'manualOptions']);
+        session()->flash('success', 'Soal manual berhasil disimpan!');
+    }
 
     public function generate()
     {

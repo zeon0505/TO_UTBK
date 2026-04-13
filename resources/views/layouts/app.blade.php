@@ -134,6 +134,53 @@
                         <a href="/profile" class="avatar avatar-md border p-1 rounded-circle" wire:navigate>
                             <i class="bi bi-person-fill fs-4 px-2"></i>
                         </a>
+                    <style>
+        :root {
+            --bg-dark-card: #252538;
+            --bg-dark-body: #1e1e2d;
+            --text-muted: #94a3b8;
+        }
+        
+        body.theme-dark {
+            background-color: var(--bg-dark-body) !important;
+        }
+
+        .theme-dark .card {
+            background-color: var(--bg-dark-card) !important;
+            border: none !important;
+        }
+
+        /* Fix Table Row Putih yang Silau */
+        .theme-dark .table {
+            color: #cbd5e1 !important;
+        }
+        .theme-dark .table thead tr {
+            background-color: rgba(255,255,255,0.05) !important;
+            color: #fff !important;
+        }
+        .theme-dark .table tbody tr:hover {
+            background-color: rgba(255,255,255,0.03) !important;
+        }
+        .theme-dark .table td, .theme-dark .table th {
+            border-color: rgba(255,255,255,0.05) !important;
+            background-color: transparent !important;
+            color: #cbd5e1 !important;
+        }
+
+        /* Fix Stats Icon */
+        .theme-dark .stats-icon {
+            background-color: rgba(255,255,255,0.1) !important;
+        }
+
+        /* Fix Overlapping Shield in Rationalization */
+        .shield-icon-container {
+            z-index: 1;
+            opacity: 0.1;
+        }
+
+        /* Smooth Transition */
+        * { transition: background-color 0.3s ease, border-color 0.3s ease; }
+    </style>
                     </div>
                 </div>
             </header>

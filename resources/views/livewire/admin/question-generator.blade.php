@@ -9,41 +9,78 @@
     </div>
 
     <section class="section">
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <div class="btn-group p-1 bg-white shadow-sm rounded-pill" style="background-color: var(--bg-dark-card) !important; border: 1px solid rgba(255,255,255,0.05);">
+                    <button wire:click="setMode('manual')" class="btn btn-sm rounded-pill px-4 {{ $mode == 'manual' ? 'btn-primary' : 'text-muted' }}">
+                        <i class="bi bi-pencil-square me-1"></i> Input Manual
+                    </button>
+                    <button wire:click="setMode('ai')" class="btn btn-sm rounded-pill px-4 {{ $mode == 'ai' ? 'btn-primary' : 'text-muted' }}">
+                        <i class="bi bi-robot me-1"></i> AI Generate
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-5">
                 <div class="card shadow-sm border-0">
                     <div class="card-body">
-                        <h5 class="fw-bold mb-4">Konfigurasi AI</h5>
-                        <form wire:submit.prevent="generate">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Topik / Materi</label>
-                                <input type="text" class="form-control" wire:model="topic" placeholder="Contoh: Logaritma, Termodinamika, dll">
-                                @error('topic') <span class="text-danger small">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Tingkat Kesulitan</label>
-                                <select class="form-select" wire:model="difficulty">
-                                    <option value="Mudah">Mudah</option>
-                                    <option value="Sedang">Sedang</option>
-                                    <option value="Sulit">Sulit (HOTs)</option>
-                                </select>
-                            </div>
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">Target Sub-Tes</label>
-                                <select class="form-select" wire:model="selectedSubTest">
-                                    <option value="">-- Pilih Sub-Tes --</option>
-                                    @foreach($subTests as $st)
-                                        <option value="{{ $st->id }}">{{ $st->exam->title }} - {{ $st->title }}</option>
+                        <h5 class="fw-bold mb-4">{{ $mode == 'ai' ? '🤖 Konfigurasi AI' : '✍️ Input Soal Manual' }}</h5>
+                        
+                        @if($mode == 'ai')
+                            <form wire:submit.prevent="generate">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Topik / Materi</label>
+                                    <input type="text" class="form-control" wire:model="topic" placeholder="Contoh: Logaritma, Termodinamika, dll">
+                                    @error('topic') <span class="text-danger small">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tingkat Kesulitan</label>
+                                    <select class="form-select" wire:model="difficulty">
+                                        <option value="Mudah">Mudah</option>
+                                        <option value="Sedang">Sedang</option>
+                                        <option value="Sulit">Sulit (HOTs)</option>
+                                    </select>
+                                </div>
+                        @else
+                            <form wire:submit.prevent="saveManual">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Teks Soal</label>
+                                    <textarea class="form-control" wire:model="manualQuestion" rows="3" placeholder="Ketik soal di sini..."></textarea>
+                                </div>
+                                <div class="row mb-3">
+                                    <label class="form-label fw-bold">Opsi Jawaban (Centang yang Benar)</label>
+                                    @foreach($manualOptions as $index => $opt)
+                                        <div class="col-12 input-group mb-2">
+                                            <div class="input-group-text">
+                                                <input class="form-check-input mt-0" type="checkbox" wire:model="manualOptions.{{ $index }}.is_correct">
+                                            </div>
+                                            <input type="text" class="form-control" wire:model="manualOptions.{{ $index }}.text" placeholder="Opsi {{ chr(65 + $index) }}">
+                                        </div>
                                     @endforeach
-                                </select>
-                                @error('selectedSubTest') <span class="text-danger small">{{ $message }}</span> @enderror
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm" wire:loading.attr="disabled">
+                                </div>
+                        @endif
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Target Sub-Tes</label>
+                            <select class="form-select" wire:model="selectedSubTest">
+                                <option value="">-- Pilih Sub-Tes --</option>
+                                @foreach($subTests as $st)
+                                    <option value="{{ $st->id }}">{{ $st->exam->title }} - {{ $st->title }}</option>
+                                @endforeach
+                            </select>
+                            @error('selectedSubTest') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm" wire:loading.attr="disabled">
+                            @if($mode == 'ai')
                                 <span wire:loading.remove wire:target="generate">🪄 Generate Soal Sekarang</span>
-                                <span wire:loading wire:target="generate">
-                                    <span class="spinner-border spinner-border-sm me-2"></span> Memikirkan Soal...
-                                </span>
-                            </button>
+                                <span wire:loading wire:target="generate">Memikirkan Soal...</span>
+                            @else
+                                <span><i class="bi bi-save me-1"></i> Simpan Soal Manual</span>
+                            @endif
+                        </button>
                         </form>
                     </div>
                 </div>
