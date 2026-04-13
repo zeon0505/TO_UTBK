@@ -50,6 +50,8 @@ class QuestionGenerator extends Component
             $fileData = base64_encode(file_get_contents($imagePath));
             $mimeType = $this->scannedImage->getMimeType();
 
+            $apiKey = env('GEMINI_API_KEY'); 
+
             // Gunakan v1beta dengan model -latest agar lebih fleksibel
             $response = Http::timeout(120)
                 ->withHeaders(['Content-Type' => 'application/json'])
