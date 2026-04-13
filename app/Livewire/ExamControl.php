@@ -46,11 +46,36 @@ class ExamControl extends Component
         ]);
 
         $targetSubject = request()->query('subject');
-        if ($targetSubject) {
-            $index = $this->exam->subTests->search(fn($st) => $st->id == $targetSubject);
-            if ($index !== false) {
-                $this->currentSubTestIndex = $index;
+        
+        // --- PROTEKSI NAVIGASI (ANTI-SKIP) ---
+        // Cari subtest terakhir yang sudah dimulai/dikerjakan
+        $data = $this->result->section_data ?? [];
+        $lastStartedIndex = 0;
+        foreach ($this->exam->subTests as $idx => $st) {
+            if (isset($data[(string)$st->id])) {
+                $lastStartedIndex = $idx;
             }
+        }
+
+        if ($targetSubject) {
+            $requestedIndex = $this->exam->subTests->search(fn($st) => $st->id == $targetSubject);
+            
+            // Aturan Adil: Siswa hanya boleh akses index yang SEDANG berjalan (lastStartedIndex)
+            // Tidak boleh mundur ke yang sudah lewat, tidak boleh lompat ke masa depan.
+            if ($requestedIndex !== false) {
+                if ($requestedIndex > $lastStartedIndex + 1) {
+                    // Mencoba lompat jauh? Blokir, pindahkan ke yang seharusnya.
+                    $this->currentSubTestIndex = $lastStartedIndex;
+                } elseif ($requestedIndex < $lastStartedIndex) {
+                    // Mencoba balik ke yang sudah lewat? Blokir, pindahkan ke yang sedang aktif.
+                    $this->currentSubTestIndex = $lastStartedIndex;
+                } else {
+                    $this->currentSubTestIndex = $requestedIndex;
+                }
+            }
+        } else {
+            // Default ke subtest terawal yang belum selesai
+            $this->currentSubTestIndex = $lastStartedIndex;
         }
     }
 

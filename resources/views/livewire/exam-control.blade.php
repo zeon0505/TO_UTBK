@@ -92,6 +92,10 @@
         const channel = new BroadcastChannel('exam_channel');
         // Violation Alarm & Pop-Up (Metode Aktif & Efek Jera)
         document.addEventListener('livewire:init', () => {
+            // Anti-Drag
+            document.addEventListener('dragstart', (e) => e.preventDefault());
+            document.addEventListener('drop', (e) => e.preventDefault());
+
             // Anti-Screenshot (Blur when focus is lost)
             const examContent = document.getElementById('exam-content-area');
             const blurWarning = document.getElementById('blur-warning');
@@ -504,4 +508,19 @@ class="container-fluid no-select">
                 style="cursor: crosshair;">
         </canvas>
     </div>
+    <style>
+        #exam-content-area {
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+        }
+        @media print {
+            body { display: none !important; }
+        }
+        .content-blur {
+            filter: blur(25px) grayscale(100%);
+            transition: filter 0.3s ease;
+        }
+    </style>
 </div>
