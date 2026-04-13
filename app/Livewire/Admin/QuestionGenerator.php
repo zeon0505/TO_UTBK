@@ -17,6 +17,8 @@ class QuestionGenerator extends Component
     // Manual Fields (Smart Parsing)
     public $bulkText = ""; 
     public $manualWeight = 1.0; 
+    public $isGenerating = false;
+    public $mode = 'manual'; 
 
     public function setMode($mode)
     {
