@@ -11,11 +11,28 @@
     <section class="section">
         <div class="row mb-4">
             <div class="col-12 text-center">
-                <div class="btn-group p-1 bg-white shadow-sm rounded-pill" style="background-color: var(--bg-dark-card) !important; border: 1px solid rgba(255,255,255,0.05);">
-                    <button wire:click="setMode('manual')" class="btn btn-sm rounded-pill px-4 {{ $mode == 'manual' ? 'btn-primary' : 'text-muted' }}">
+                <style>
+                    .mode-switcher {
+                        background-color: #252538 !important;
+                        border: 1px solid rgba(255,255,255,0.1);
+                        padding: 5px;
+                    }
+                    .mode-btn {
+                        transition: all 0.3s ease;
+                    }
+                    .mode-btn.inactive {
+                        color: rgba(255, 255, 255, 0.6) !important;
+                    }
+                    .mode-btn.inactive:hover {
+                        color: #fff !important;
+                        background-color: rgba(255, 255, 255, 0.05);
+                    }
+                </style>
+                <div class="btn-group mode-switcher shadow-sm rounded-pill">
+                    <button wire:click="setMode('manual')" class="btn btn-sm rounded-pill px-4 mode-btn {{ $mode == 'manual' ? 'btn-primary shadow-sm' : 'inactive' }}">
                         <i class="bi bi-pencil-square me-1"></i> Input Manual
                     </button>
-                    <button wire:click="setMode('ai')" class="btn btn-sm rounded-pill px-4 {{ $mode == 'ai' ? 'btn-primary' : 'text-muted' }}">
+                    <button wire:click="setMode('ai')" class="btn btn-sm rounded-pill px-4 mode-btn {{ $mode == 'ai' ? 'btn-primary shadow-sm' : 'inactive' }}">
                         <i class="bi bi-robot me-1"></i> AI Generate
                     </button>
                 </div>
@@ -44,21 +61,16 @@
                                     </select>
                                 </div>
                         @else
+                            <div class="alert alert-secondary border-0 small mb-3" style="background-color: rgba(255,255,255,0.03); color: #cbd5e1;">
+                                <h6 class="fw-bold mb-1"><i class="bi bi-info-circle me-1"></i> Format Fast-Entry:</h6>
+                                <p class="mb-0 text-muted">Baris 1: Pertanyaan<br>Baris 2-dst: Pilihan Jawaban<br>Tambahkan <b>*</b> di akhir pilihan yang benar.</p>
+                            </div>
                             <form wire:submit.prevent="saveManual">
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Teks Soal</label>
-                                    <textarea class="form-control" wire:model="manualQuestion" rows="3" placeholder="Ketik soal di sini..."></textarea>
-                                </div>
-                                <div class="row mb-3">
-                                    <label class="form-label fw-bold">Opsi Jawaban (Centang yang Benar)</label>
-                                    @foreach($manualOptions as $index => $opt)
-                                        <div class="col-12 input-group mb-2">
-                                            <div class="input-group-text">
-                                                <input class="form-check-input mt-0" type="checkbox" wire:model="manualOptions.{{ $index }}.is_correct">
-                                            </div>
-                                            <input type="text" class="form-control" wire:model="manualOptions.{{ $index }}.text" placeholder="Opsi {{ chr(65 + $index) }}">
-                                        </div>
-                                    @endforeach
+                                    <label class="form-label fw-bold">Input Teks Soal & Opsi</label>
+                                    <textarea class="form-control" wire:model="bulkText" rows="10" 
+                                        placeholder="Ketik soal di sini...&#10;A. Pilihan 1&#10;B. Pilihan 2*&#10;C. Pilihan 3"></textarea>
+                                    @error('bulkText') <span class="text-danger small">{{ $message }}</span> @enderror
                                 </div>
                         @endif
 

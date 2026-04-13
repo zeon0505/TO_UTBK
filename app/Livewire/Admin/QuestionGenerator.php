@@ -17,14 +17,8 @@ class QuestionGenerator extends Component
     public $isGenerating = false;
     public $mode = 'manual'; // Default mode
 
-    // Manual Fields
-    public $manualQuestion = '';
-    public $manualOptions = [
-        ['text' => '', 'is_correct' => false],
-        ['text' => '', 'is_correct' => false],
-        ['text' => '', 'is_correct' => false],
-        ['text' => '', 'is_correct' => false],
-    ];
+    // Manual Fields (Smart Parsing)
+    public $bulkText = ""; 
 
     public function setMode($mode)
     {
@@ -35,28 +29,48 @@ class QuestionGenerator extends Component
     public function saveManual()
     {
         $this->validate([
-            'manualQuestion' => 'required',
+            'bulkText' => 'required',
             'selectedSubTest' => 'required',
         ]);
 
+        // Parsing Logika: Pisahkan baris
+        $lines = explode("\n", str_replace("\r", "", $this->bulkText));
+        $lines = array_values(array_filter(array_map('trim', $lines)));
+
+        if (count($lines) < 2) {
+            session()->flash('error', 'Format salah. Masukkan soal dan minimal 2 pilihan.');
+            return;
+        }
+
+        // Baris pertama dianggap Soal
+        $questionText = $lines[0];
+        
         $question = Question::create([
             'sub_test_id' => $this->selectedSubTest,
-            'question_text' => $this->manualQuestion,
+            'question_text' => $questionText,
             'irt_weight' => 1.0,
         ]);
 
-        foreach ($this->manualOptions as $opt) {
-            if (!empty($opt['text'])) {
+        // Baris selanjutnya dianggap Opsi jika ada awalan A., B., dll atau langsung teks
+        for ($i = 1; $i < count($lines); $i++) {
+            $line = $lines[$i];
+            $isCorrect = str_ends_with($line, '*');
+            
+            // Bersihkan tanda bintang dan awalan A. B. C. jika ada
+            $optionText = rtrim($line, '*');
+            $optionText = preg_replace('/^[A-E][.\s)]+/', '', $optionText);
+
+            if (!empty($optionText)) {
                 Option::create([
                     'question_id' => $question->id,
-                    'option_text' => $opt['text'],
-                    'is_correct' => $opt['is_correct'],
+                    'option_text' => trim($optionText),
+                    'is_correct' => $isCorrect,
                 ]);
             }
         }
 
-        $this->reset(['manualQuestion', 'manualOptions']);
-        session()->flash('success', 'Soal manual berhasil disimpan!');
+        $this->reset(['bulkText']);
+        session()->flash('success', 'Soal berhasil di-parse dan disimpan!');
     }
 
     public function generate()
