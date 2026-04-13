@@ -22,4 +22,17 @@ class Question extends Model
     {
         return $this->hasMany(Option::class);
     }
+
+    public function getDifficultyLevelAttribute()
+    {
+        $weight = $this->irt_weight;
+
+        if ($weight < 1.3) {
+            return 'Mudah';
+        } elseif ($weight < 1.7) {
+            return 'Sedang';
+        } else {
+            return 'Sulit';
+        }
+    }
 }

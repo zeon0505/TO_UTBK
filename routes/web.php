@@ -27,6 +27,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:admin')->group(function() {
         Route::get('/admin/generator', QuestionGenerator::class)->name('admin.generator');
         Route::get('/admin/exams', \App\Livewire\Admin\ExamManager::class)->name('admin.exams');
+        Route::get('/admin/users', \App\Livewire\Admin\UserMonitor::class)->name('admin.users');
     });
 
     Route::post('/logout', function () {

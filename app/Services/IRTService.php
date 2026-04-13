@@ -57,16 +57,23 @@ class IRTService
 
         foreach ($results as $result) {
             $totalScore = 0;
+            $rawPoints = 0;
             $answers = UserAnswer::where('result_id', $result->id)->with(['question', 'option'])->get();
 
             foreach ($answers as $answer) {
                 if ($answer->option && $answer->option->point > 0) {
-                    // Score = Option Point * IRT Weight
+                    // Raw Points (Sum of correct answers)
+                    $rawPoints++;
+                    
+                    // IRT Score = Option Point * IRT Weight
                     $totalScore += ($answer->option->point * $answer->question->irt_weight);
                 }
             }
 
-            $result->update(['total_score' => $totalScore]);
+            $result->update([
+                'total_score' => $totalScore,
+                'raw_points' => $rawPoints
+            ]);
         }
     }
 }

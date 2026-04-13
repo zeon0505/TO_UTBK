@@ -38,9 +38,22 @@
                     $correctOption = $q->options->sortByDesc('point')->first();
                 @endphp
                 <div class="card mb-4 shadow-sm border-0">
-                    <div class="card-header bg-transparent d-flex justify-content-between">
+                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
                         <h5 class="fw-bold mb-0">Soal {{ $idx + 1 }}</h5>
-                        <span class="badge bg-light-primary text-primary px-3">{{ $q->type }}</span>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-light-primary text-primary px-3">{{ $q->type }}</span>
+                            @php
+                                $diffClass = match($q->difficulty_level) {
+                                    'Mudah' => 'bg-light-success text-success',
+                                    'Sedang' => 'bg-light-warning text-warning',
+                                    'Sulit' => 'bg-light-danger text-danger',
+                                    default => 'bg-light-secondary text-secondary'
+                                };
+                            @endphp
+                            <span class="badge {{ $diffClass }} px-3">
+                                <i class="bi bi-bar-chart-fill me-1"></i> {{ $q->difficulty_level }}
+                            </span>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="fs-5 mb-4">{!! $q->text !!}</div>
