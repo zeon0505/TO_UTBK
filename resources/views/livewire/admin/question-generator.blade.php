@@ -148,7 +148,7 @@
                                 <select class="form-select form-select-lg shadow-none border-2 border-primary rounded-3" wire:model="selectedSubTest">
                                     <option value="">-- PILIH TUJUAN UJIAN DI SINI --</option>
                                     @foreach($subTests as $st)
-                                        <option value="{{ $st->id }}">{{ $st->exam->title }} - {{ $st->name }}</option>
+                                        <option value="{{ $st->id }}">{{ $st->exam->title }} - {{ $st->title }}</option>
                                     @endforeach
                                 </select>
                                 @error('selectedSubTest') <span class="text-danger fw-bold small">{{ $message }}</span> @enderror

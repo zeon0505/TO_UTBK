@@ -294,7 +294,7 @@ class QuestionGenerator extends Component
     public function render()
     {
         return view('livewire.admin.question-generator', [
-            'subTests' => SubTest::with('exam')->get(),
+            'subTests' => SubTest::with('exam')->orderBy('exam_id')->get(),
         ])->layout('layouts.app');
     }
 }
