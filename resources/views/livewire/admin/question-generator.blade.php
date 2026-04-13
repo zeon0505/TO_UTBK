@@ -66,6 +66,17 @@
                                 <p class="mb-0 text-muted">Baris 1: Pertanyaan<br>Baris 2-dst: Pilihan Jawaban<br>Tambahkan <b>*</b> di akhir pilihan yang benar.</p>
                             </div>
                             <form wire:submit.prevent="saveManual">
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold small">Bobot Skor (IRT)</label>
+                                        <input type="number" step="0.1" class="form-control" wire:model="manualWeight">
+                                        @error('manualWeight') <span class="text-danger small">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold small">Preview</label>
+                                        <div class="form-text mt-2">Diterapkan ke soal di bawah.</div>
+                                    </div>
+                                </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Input Teks Soal & Opsi</label>
                                     <textarea class="form-control" wire:model="bulkText" rows="10" 

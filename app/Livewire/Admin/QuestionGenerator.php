@@ -14,11 +14,9 @@ class QuestionGenerator extends Component
     public $difficulty = 'Sedang';
     public $selectedSubTest = '';
     public $generatedQuestions = [];
-    public $isGenerating = false;
-    public $mode = 'manual'; // Default mode
-
     // Manual Fields (Smart Parsing)
     public $bulkText = ""; 
+    public $manualWeight = 1.0; 
 
     public function setMode($mode)
     {
@@ -31,6 +29,7 @@ class QuestionGenerator extends Component
         $this->validate([
             'bulkText' => 'required',
             'selectedSubTest' => 'required',
+            'manualWeight' => 'required|numeric|min:0',
         ]);
 
         // Parsing Logika: Pisahkan baris
@@ -48,7 +47,7 @@ class QuestionGenerator extends Component
         $question = Question::create([
             'sub_test_id' => $this->selectedSubTest,
             'question_text' => $questionText,
-            'irt_weight' => 1.0,
+            'irt_weight' => $this->manualWeight,
         ]);
 
         // Baris selanjutnya dianggap Opsi jika ada awalan A., B., dll atau langsung teks
