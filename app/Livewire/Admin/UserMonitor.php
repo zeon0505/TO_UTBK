@@ -36,6 +36,7 @@ class UserMonitor extends Component
             $this->prodi = $currentUser->prodi;
             if ($currentUser->role !== 'superadmin') {
                 $this->selectedProdi = $currentUser->prodi;
+                $this->role = 'mahasiswa';
             }
         }
     }
@@ -74,6 +75,15 @@ class UserMonitor extends Component
 
     public function saveUser(): void
     {
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+
+        // Enforce restriction for non-superadmin (regular Admin)
+        if ($currentUser->role !== 'superadmin') {
+            $this->role = 'mahasiswa';
+            $this->prodi = $currentUser->prodi;
+        }
+
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $this->selectedUserId,
@@ -81,30 +91,38 @@ class UserMonitor extends Component
         ];
 
         if ($this->password) {
-            $rules['password'] = 'min:6';
+            $rules['password'] = 'min:4';
         }
 
         $this->validate($rules);
 
+        // Auto-generate email if empty for student
+        if ($this->role === 'mahasiswa' && empty($this->email) && !empty($this->nim)) {
+            $this->email = trim($this->nim) . '@mahasiswa.ac.id';
+        }
+
         $data = [
-            'name' => $this->name,
-            'email' => $this->email,
+            'name' => trim($this->name),
+            'email' => trim($this->email),
             'role' => $this->role,
             'is_admin' => in_array($this->role, ['superadmin', 'admin']),
-            'nim' => $this->role === 'mahasiswa' ? $this->nim : null,
-            'nip' => in_array($this->role, ['dosen', 'admin', 'superadmin']) ? $this->nip : null,
+            'nim' => $this->role === 'mahasiswa' ? trim($this->nim) : null,
+            'nip' => in_array($this->role, ['dosen', 'admin', 'superadmin']) ? trim($this->nip) : null,
             'prodi' => $this->prodi,
-            'semester' => $this->role === 'mahasiswa' ? $this->semester : null,
-            'kelas' => $this->role === 'mahasiswa' ? $this->kelas : null,
+            'semester' => $this->role === 'mahasiswa' ? (int) $this->semester : null,
+            'kelas' => $this->role === 'mahasiswa' ? trim($this->kelas) : null,
         ];
 
+        // Set password if provided or default to 'password' for new users
         if ($this->password) {
             $data['password'] = Hash::make($this->password);
+        } elseif (!$this->selectedUserId) {
+            $data['password'] = Hash::make('password');
         }
 
         User::updateOrCreate(['id' => $this->selectedUserId], $data);
 
-        session()->flash('message', $this->isEditing ? 'Data pengguna berhasil diperbarui!' : 'Pengguna baru berhasil ditambahkan!');
+        session()->flash('message', $this->isEditing ? 'Data pengguna berhasil diperbarui!' : 'Akun ' . ucfirst($this->role) . ' baru berhasil dibuat dan siap digunakan untuk masuk!');
         $this->resetFields();
     }
 

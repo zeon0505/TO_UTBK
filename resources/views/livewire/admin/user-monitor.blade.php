@@ -33,25 +33,30 @@
                 </div>
                 <div class="card-body">
                     <form wire:submit.prevent="saveUser">
+                        <!-- Role Selection -->
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Role Pengguna</label>
-                            <select class="form-select" wire:model.live="role">
-                                <option value="mahasiswa">Mahasiswa</option>
-                                <option value="dosen">Dosen Pengampu</option>
-                                <option value="admin">Admin Akademik</option>
-                                <option value="superadmin">Super Admin (Kaprodi)</option>
-                            </select>
+                            @if($currentUser->role === 'superadmin')
+                                <select class="form-select" wire:model.live="role">
+                                    <option value="mahasiswa">🎓 Mahasiswa</option>
+                                    <option value="dosen">👨‍🏫 Dosen Pengampu</option>
+                                    <option value="admin">🛡️ Admin Akademik</option>
+                                    <option value="superadmin">👑 Super Admin (Kaprodi)</option>
+                                </select>
+                            @else
+                                <input type="text" class="form-control bg-light fw-bold text-primary" value="🎓 Mahasiswa (Khusus Admin Prodi)" readonly disabled>
+                            @endif
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Nama Lengkap</label>
-                            <input type="text" class="form-control" wire:model="name" placeholder="Nama pengguna">
+                            <input type="text" class="form-control" wire:model="name" placeholder="contoh: Ahmad Fauzi">
                             @error('name') <small class="text-danger">{{ $message }}</small> @enderror
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Email Kampus</label>
-                            <input type="email" class="form-control" wire:model="email" placeholder="email@kampus.ac.id">
+                            <input type="email" class="form-control" wire:model="email" placeholder="contoh: 210101001@mahasiswa.ac.id">
                             @error('email') <small class="text-danger">{{ $message }}</small> @enderror
                         </div>
 
@@ -59,22 +64,26 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">NIM</label>
-                                <input type="text" class="form-control" wire:model="nim" placeholder="NIM">
+                                <input type="text" class="form-control" wire:model="nim" placeholder="contoh: 210101001">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Kelas</label>
-                                <input type="text" class="form-control" wire:model="kelas" placeholder="misal: TI-5A">
+                                <input type="text" class="form-control" wire:model="kelas" placeholder="contoh: KPI-1A">
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Program Studi</label>
-                                <select class="form-select fw-semibold" wire:model="prodi">
-                                    <option value="Komunikasi dan Penyiaran Islam">Komunikasi dan Penyiaran Islam (KPI)</option>
-                                    <option value="Hukum Tata Negara">Hukum Tata Negara (HTN)</option>
-                                    <option value="Pendidikan Agama Islam">Pendidikan Agama Islam (PAI)</option>
-                                    <option value="Ekonomi Syariah">Ekonomi Syariah (ES)</option>
-                                </select>
+                                @if($currentUser->role === 'superadmin')
+                                    <select class="form-select fw-semibold" wire:model="prodi">
+                                        <option value="Komunikasi dan Penyiaran Islam">Komunikasi & Penyiaran Islam (KPI)</option>
+                                        <option value="Hukum Tata Negara">Hukum Tata Negara (HTN)</option>
+                                        <option value="Pendidikan Agama Islam">Pendidikan Agama Islam (PAI)</option>
+                                        <option value="Ekonomi Syariah">Ekonomi Syariah (ES)</option>
+                                    </select>
+                                @else
+                                    <input type="text" class="form-control bg-light fw-semibold" value="{{ $currentUser->prodi }}" readonly disabled>
+                                @endif
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Semester</label>
@@ -92,12 +101,16 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Program Studi</label>
-                            <select class="form-select fw-semibold" wire:model="prodi">
-                                <option value="Komunikasi dan Penyiaran Islam">Komunikasi dan Penyiaran Islam (KPI)</option>
-                                <option value="Hukum Tata Negara">Hukum Tata Negara (HTN)</option>
-                                <option value="Pendidikan Agama Islam">Pendidikan Agama Islam (PAI)</option>
-                                <option value="Ekonomi Syariah">Ekonomi Syariah (ES)</option>
-                            </select>
+                            @if($currentUser->role === 'superadmin')
+                                <select class="form-select fw-semibold" wire:model="prodi">
+                                    <option value="Komunikasi dan Penyiaran Islam">Komunikasi & Penyiaran Islam (KPI)</option>
+                                    <option value="Hukum Tata Negara">Hukum Tata Negara (HTN)</option>
+                                    <option value="Pendidikan Agama Islam">Pendidikan Agama Islam (PAI)</option>
+                                    <option value="Ekonomi Syariah">Ekonomi Syariah (ES)</option>
+                                </select>
+                            @else
+                                <input type="text" class="form-control bg-light fw-semibold" value="{{ $currentUser->prodi }}" readonly disabled>
+                            @endif
                         </div>
                         @endif
 
