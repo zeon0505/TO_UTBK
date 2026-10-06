@@ -371,9 +371,19 @@
 
         // ── LISTENERS ──────────────────────────────────────────────
 
-        // 1. Tab switch
+        // 1. Tab switch / app switch (semua browser termasuk mobile)
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) triggerViol('berpindah tab / meminimalkan browser');
+        });
+
+        // 1b. pagehide — lebih reliable di iOS Safari saat keluar halaman
+        window.addEventListener('pagehide', function(e) {
+            if (!window.__examEnd) triggerViol('meninggalkan / menutup halaman ujian');
+        });
+
+        // 1c. Page Lifecycle API — saat browser "freeze" tab (Android/Desktop Chrome)
+        window.addEventListener('freeze', function() {
+            if (!window.__examEnd) triggerViol('browser membekukan halaman (pindah app)');
         });
 
         // 2. Focus lost to other app
@@ -439,12 +449,58 @@
         _volObserver.observe(document.body, { childList: true, subtree: true });
 
 
-        // 4. Block copy/cut/right-click
-        document.addEventListener('copy',        function(e){ e.preventDefault(); });
-        document.addEventListener('cut',         function(e){ e.preventDefault(); });
+        // 4. Block copy/cut/paste/right-click/drag/text-selection
+        document.addEventListener('copy',        function(e){ e.preventDefault(); triggerViol('mencoba menyalin teks (Copy)'); });
+        document.addEventListener('cut',         function(e){ e.preventDefault(); triggerViol('mencoba memotong teks (Cut)'); });
+        document.addEventListener('paste',       function(e){ e.preventDefault(); triggerViol('mencoba menempelkan teks (Paste / Copas)'); });
         document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+        document.addEventListener('dragstart',   function(e){ e.preventDefault(); });
+        document.addEventListener('selectstart', function(e){
+            if (!['INPUT','TEXTAREA'].includes(e.target.tagName)) e.preventDefault();
+        });
 
-        // 5. Back button trap
+        // 5. DevTools & Split Screen / Multi-window inspection
+        var initialWidth = window.innerWidth;
+        window.addEventListener('resize', function() {
+            if (window.__examEnd) return;
+            // Check DevTools side dock
+            var widthDiff = window.outerWidth - window.innerWidth;
+            var heightDiff = window.outerHeight - window.innerHeight;
+            if (widthDiff > 200 || heightDiff > 200) {
+                triggerViol('membuka Developer Tools / Inspector');
+            }
+            // Check Split-Screen on mobile / small window shift
+            if (window.innerWidth < initialWidth * 0.65 && window.innerWidth < 500) {
+                triggerViol('deteksi layar terbagi (Split Screen / Layar Ganda)');
+            }
+        });
+
+        // 6. Fullscreen enforcement & exit monitoring
+        function requestExamFullscreen() {
+            var elem = document.documentElement;
+            if (elem.requestFullscreen) { elem.requestFullscreen().catch(function(){}); }
+            else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
+        }
+        document.addEventListener('click', function _fsOnce() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                requestExamFullscreen();
+            }
+        }, { once: true });
+
+        document.addEventListener('fullscreenchange', function() {
+            if (window.__examEnd) return;
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                triggerViol('keluar dari mode Layar Penuh (Fullscreen)');
+            }
+        });
+        document.addEventListener('webkitfullscreenchange', function() {
+            if (window.__examEnd) return;
+            if (!document.webkitFullscreenElement && !document.fullscreenElement) {
+                triggerViol('keluar dari mode Layar Penuh (Fullscreen)');
+            }
+        });
+
+        // 7. Back button trap
         history.pushState({examActive:true}, '', window.location.href);
         window.addEventListener('popstate', function() {
             if (window.__examEnd) return;
@@ -461,14 +517,14 @@
             n._t = setTimeout(function(){ n.style.opacity='0'; }, 2500);
         });
 
-        // 6. Before unload
+        // 8. Before unload
         window.addEventListener('beforeunload', function(e) {
             if (window.__examEnd) return;
             e.preventDefault();
             e.returnValue = 'Ujian masih berlangsung!';
         });
 
-        console.log('[UJIAN] Engine aktif. Violations: '+window.__examV+', TimeLeft: '+Math.floor((getDeadline()-Date.now())/1000)+'s');
+        console.log('[UJIAN] Engine perketat aktif. Violations: '+window.__examV+', TimeLeft: '+Math.floor((getDeadline()-Date.now())/1000)+'s');
     </script>
     @endscript
 
