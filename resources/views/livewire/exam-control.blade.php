@@ -401,7 +401,43 @@
             if ((e.ctrlKey||e.metaKey)&&'pP'.includes(e.key)) {
                 e.preventDefault(); triggerViol('Print Ctrl+P'); return;
             }
+            // Block volume down keys
+            if (e.code==='VolumeDown' || e.key==='AudioVolumeDown' || e.key==='VolumeDown') {
+                e.preventDefault(); return;
+            }
         });
+
+        // 3b. Block volume down on keyup too
+        document.addEventListener('keyup', function(e) {
+            if (e.code==='VolumeDown' || e.key==='AudioVolumeDown' || e.key==='VolumeDown') {
+                e.preventDefault();
+            }
+        });
+
+        // 3c. Lock all media elements to volume 1.0 and watch for changes
+        function lockMediaVolume() {
+            document.querySelectorAll('audio, video').forEach(function(el) {
+                if (el.volume < 1) el.volume = 1.0;
+                el.muted = false;
+            });
+        }
+        lockMediaVolume();
+        setInterval(lockMediaVolume, 1000);
+
+        // Observe new media elements added to DOM
+        var _volObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(m) {
+                m.addedNodes.forEach(function(node) {
+                    if (node.nodeName === 'AUDIO' || node.nodeName === 'VIDEO') {
+                        node.volume = 1.0;
+                        node.muted = false;
+                    }
+                });
+            });
+            lockMediaVolume();
+        });
+        _volObserver.observe(document.body, { childList: true, subtree: true });
+
 
         // 4. Block copy/cut/right-click
         document.addEventListener('copy',        function(e){ e.preventDefault(); });
