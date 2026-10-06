@@ -104,6 +104,17 @@
                 <div class="card-header bg-transparent d-flex flex-wrap justify-content-between align-items-center py-3 gap-2" style="overflow: visible !important; position: relative; z-index: 20;">
                     <h5 class="card-title mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Daftar Sesi UTS Terbuka</h5>
                     <div class="d-flex align-items-center gap-2">
+                        <!-- Filter Semester Admin -->
+                        <div class="input-group input-group-sm" style="width: auto;">
+                            <span class="input-group-text bg-primary text-white fw-bold"><i class="bi bi-bookmark-star-fill me-1"></i>Semester</span>
+                            <select class="form-select border-primary fw-bold" wire:model.live="selectedSemester">
+                                <option value="all">Semua Semester</option>
+                                @for($s = 1; $s <= 8; $s++)
+                                    <option value="{{ $s }}">Semester {{ $s }}</option>
+                                @endfor
+                            </select>
+                        </div>
+
                         <!-- Custom Smooth Animated Dropdown for Admin Sesi UTS -->
                         <div class="position-relative" x-data="{ open: false }" @click.outside="open = false">
                             <button type="button" @click="open = !open" 

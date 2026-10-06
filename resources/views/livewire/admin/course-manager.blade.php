@@ -46,19 +46,33 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Semester</label>
-                                <input type="number" class="form-control" wire:model="semester" min="1" max="8">
+                                <select class="form-select fw-semibold" wire:model="semester">
+                                    @for($s = 1; $s <= 8; $s++)
+                                        <option value="{{ $s }}">Semester {{ $s }}</option>
+                                    @endfor
+                                </select>
                                 @error('semester') <small class="text-danger">{{ $message }}</small> @enderror
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Program Studi</label>
-                            <input type="text" class="form-control" wire:model="prodi" placeholder="contoh: Teknik Informatika">
+                            <select class="form-select fw-semibold" wire:model="prodi">
+                                <option value="Komunikasi dan Penyiaran Islam">Komunikasi dan Penyiaran Islam (KPI)</option>
+                                <option value="Hukum Tata Negara">Hukum Tata Negara (HTN)</option>
+                                <option value="Pendidikan Agama Islam">Pendidikan Agama Islam (PAI)</option>
+                                <option value="Ekonomi Syariah">Ekonomi Syariah (ES)</option>
+                            </select>
                             @error('prodi') <small class="text-danger">{{ $message }}</small> @enderror
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label fw-semibold">Dosen Pengampu Utama</label>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-semibold mb-0">Dosen Pengampu Utama</label>
+                                <button type="button" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-2.5 py-0.5" wire:click="openDosenModal" style="font-size:0.75rem;">
+                                    <i class="bi bi-person-plus-fill me-1"></i>+ Dosen Baru
+                                </button>
+                            </div>
                             <select class="form-select" wire:model="lecturer_id">
                                 <option value="">-- Pilih Dosen Pengampu --</option>
                                 @foreach($lecturers as $dsn)
@@ -132,4 +146,47 @@
             </div>
         </div>
     </div>
+
+    <!-- ══ MODAL TAMBAH DOSEN BARU ══ -->
+    @if($showDosenModal)
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 10500;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white border-0 py-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-person-plus-fill me-2"></i>Tambah Dosen Pengampu Baru</h5>
+                    <button type="button" class="btn-close btn-close-white" wire:click="closeDosenModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form wire:submit.prevent="saveNewDosen">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-uppercase">Nama Lengkap Dosen & Gelar</label>
+                            <input type="text" class="form-control" wire:model="newDosenName" placeholder="contoh: Dr. Ahmad Farhan, M.I.Kom.">
+                            @error('newDosenName') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-uppercase">NIP Dosen (Nomor Induk Pegawai)</label>
+                            <input type="text" class="form-control" wire:model="newDosenNip" placeholder="contoh: 198501012010121001">
+                            @error('newDosenNip') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-uppercase">Email Kampus Dosen</label>
+                            <input type="email" class="form-control" wire:model="newDosenEmail" placeholder="dosen@kampus.ac.id">
+                            @error('newDosenEmail') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-uppercase">Kata Sandi Default</label>
+                            <input type="text" class="form-control font-monospace" wire:model="newDosenPassword" placeholder="password">
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-light fw-semibold" wire:click="closeDosenModal">Batal</button>
+                            <button type="submit" class="btn btn-primary fw-bold shadow-sm px-4">
+                                <i class="bi bi-check-circle-fill me-1"></i>Simpan Dosen
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

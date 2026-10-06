@@ -6,6 +6,7 @@ use Livewire\Component;
 use App\Models\Course;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class CourseManager extends Component
 {
@@ -13,10 +14,17 @@ class CourseManager extends Component
     public $name = '';
     public $sks = 3;
     public $semester = 5;
-    public $prodi = 'Teknik Informatika';
+    public $prodi = 'Komunikasi dan Penyiaran Islam';
     public ?int $lecturer_id = null;
     public ?int $selectedCourseId = null;
     public bool $isEditing = false;
+
+    // Quick Add Dosen Modal State
+    public bool $showDosenModal = false;
+    public string $newDosenName = '';
+    public string $newDosenNip = '';
+    public string $newDosenEmail = '';
+    public string $newDosenPassword = 'password';
 
     public function mount(): void
     {
@@ -38,10 +46,54 @@ class CourseManager extends Component
         $this->name = '';
         $this->sks = 3;
         $this->semester = 5;
-        $this->prodi = $user->prodi ?? 'Teknik Informatika';
+        $this->prodi = $user->prodi ?? 'Komunikasi dan Penyiaran Islam';
         $this->lecturer_id = ($user && $user->isDosen()) ? $user->id : null;
         $this->selectedCourseId = null;
         $this->isEditing = false;
+    }
+
+    public function openDosenModal(): void
+    {
+        $this->newDosenName = '';
+        $this->newDosenNip = '';
+        $this->newDosenEmail = '';
+        $this->newDosenPassword = 'password';
+        $this->showDosenModal = true;
+    }
+
+    public function closeDosenModal(): void
+    {
+        $this->showDosenModal = false;
+    }
+
+    public function saveNewDosen(): void
+    {
+        $this->validate([
+            'newDosenName' => 'required|string|max:255',
+            'newDosenEmail' => 'required|email|unique:users,email',
+            'newDosenNip' => 'nullable|string',
+        ], [
+            'newDosenName.required' => 'Nama dosen wajib diisi!',
+            'newDosenEmail.required' => 'Email dosen wajib diisi!',
+            'newDosenEmail.unique' => 'Email dosen tersebut sudah terdaftar!',
+        ]);
+
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+
+        $dosen = User::create([
+            'name' => trim($this->newDosenName),
+            'email' => trim($this->newDosenEmail),
+            'nip' => trim($this->newDosenNip) ?: null,
+            'role' => 'dosen',
+            'prodi' => $this->prodi ?: ($currentUser->prodi ?? 'Komunikasi dan Penyiaran Islam'),
+            'password' => Hash::make($this->newDosenPassword ?: 'password'),
+            'is_admin' => false,
+        ]);
+
+        $this->lecturer_id = $dosen->id;
+        $this->showDosenModal = false;
+        session()->flash('message', 'Dosen Pengampu baru (' . $dosen->name . ') berhasil ditambahkan!');
     }
 
     public function saveCourse(): void
@@ -95,7 +147,7 @@ class CourseManager extends Component
     {
         $user = Auth::user();
         $coursesQuery = Course::with('lecturer');
-        $lecturersQuery = User::whereIn('role', ['dosen', 'admin']);
+        $lecturersQuery = User::whereIn('role', ['dosen', 'admin', 'superadmin']);
 
         if ($user->prodi) {
             $coursesQuery->where('prodi', $user->prodi);

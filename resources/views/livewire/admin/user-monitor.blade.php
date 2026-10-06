@@ -69,11 +69,20 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Program Studi</label>
-                                <input type="text" class="form-control" wire:model="prodi">
+                                <select class="form-select fw-semibold" wire:model="prodi">
+                                    <option value="Komunikasi dan Penyiaran Islam">Komunikasi dan Penyiaran Islam (KPI)</option>
+                                    <option value="Hukum Tata Negara">Hukum Tata Negara (HTN)</option>
+                                    <option value="Pendidikan Agama Islam">Pendidikan Agama Islam (PAI)</option>
+                                    <option value="Ekonomi Syariah">Ekonomi Syariah (ES)</option>
+                                </select>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-semibold">Semester</label>
-                                <input type="number" class="form-control" wire:model="semester" min="1" max="14">
+                                <select class="form-select fw-semibold" wire:model="semester">
+                                    @for($s = 1; $s <= 8; $s++)
+                                        <option value="{{ $s }}">Semester {{ $s }}</option>
+                                    @endfor
+                                </select>
                             </div>
                         </div>
                         @else
@@ -83,7 +92,12 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Program Studi</label>
-                            <input type="text" class="form-control" wire:model="prodi" placeholder="misal: Teknik Informatika">
+                            <select class="form-select fw-semibold" wire:model="prodi">
+                                <option value="Komunikasi dan Penyiaran Islam">Komunikasi dan Penyiaran Islam (KPI)</option>
+                                <option value="Hukum Tata Negara">Hukum Tata Negara (HTN)</option>
+                                <option value="Pendidikan Agama Islam">Pendidikan Agama Islam (PAI)</option>
+                                <option value="Ekonomi Syariah">Ekonomi Syariah (ES)</option>
+                            </select>
                         </div>
                         @endif
 
@@ -110,17 +124,50 @@
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-transparent py-3">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
                             <h5 class="card-title mb-0 fw-bold"><i class="bi bi-list-columns me-2 text-primary"></i>Daftar Pengguna</h5>
+                            <small class="text-muted">
+                                @if($currentUser->role === 'superadmin')
+                                    <span class="badge bg-danger-subtle text-danger border border-danger me-1"><i class="bi bi-shield-fill me-1"></i>Akses Superadmin</span> Menampilkan seluruh pengguna
+                                @else
+                                    <span class="badge bg-primary-subtle text-primary border border-primary me-1"><i class="bi bi-building me-1"></i>Prodi {{ $currentUser->prodi }}</span> Khusus pengguna prodi {{ $currentUser->prodi }}
+                                @endif
+                            </small>
                         </div>
-                        <div class="col-md-6 d-flex gap-2 justify-content-md-end mt-2 mt-md-0">
-                            <input type="text" class="form-control form-control-sm" placeholder="Cari nama/email/NIM/NIP..." wire:model.live="search">
-                            <select class="form-select form-select-sm" wire:model.live="roleFilter" style="width: 140px;">
-                                <option value="all">Semua Role</option>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <!-- Search -->
+                            <div class="input-group input-group-sm" style="width: 180px;">
+                                <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Cari nama/NIM/NIP..." wire:model.live="search">
+                            </div>
+
+                            <!-- Filter Prodi (Superadmin Only) -->
+                            @if($currentUser->role === 'superadmin')
+                            <select class="form-select form-select-sm border-primary fw-bold" wire:model.live="selectedProdi" style="width: 180px;">
+                                <option value="all">📚 Semua Prodi</option>
+                                <option value="Komunikasi dan Penyiaran Islam">Komunikasi & Penyiaran Islam (KPI)</option>
+                                <option value="Hukum Tata Negara">Hukum Tata Negara (HTN)</option>
+                                <option value="Pendidikan Agama Islam">Pendidikan Agama Islam (PAI)</option>
+                                <option value="Ekonomi Syariah">Ekonomi Syariah (ES)</option>
+                            </select>
+                            @endif
+
+                            <!-- Filter Semester (Both Superadmin & Admin) -->
+                            <select class="form-select form-select-sm border-primary fw-bold" wire:model.live="selectedSemester" style="width: 140px;">
+                                <option value="all">🎓 Semua Semester</option>
+                                @for($s = 1; $s <= 8; $s++)
+                                    <option value="{{ $s }}">Semester {{ $s }}</option>
+                                @endfor
+                            </select>
+
+                            <!-- Filter Role -->
+                            <select class="form-select form-select-sm" wire:model.live="roleFilter" style="width: 130px;">
+                                <option value="all">👥 Semua Role</option>
                                 <option value="mahasiswa">Mahasiswa</option>
                                 <option value="dosen">Dosen</option>
                                 <option value="admin">Admin</option>
+                                <option value="superadmin">Super Admin</option>
                             </select>
                         </div>
                     </div>
@@ -134,6 +181,7 @@
                                     <th>Role</th>
                                     <th>NIM / NIP</th>
                                     <th>Prodi / Kelas</th>
+                                    <th>Hasil & Total Nilai UTS</th>
                                     <th class="text-end">Aksi</th>
                                 </tr>
                             </thead>
@@ -145,8 +193,10 @@
                                         <small class="text-muted">{{ $u->email }}</small>
                                     </td>
                                     <td>
-                                        @if($u->role === 'admin')
-                                            <span class="badge bg-danger">Admin</span>
+                                        @if($u->role === 'superadmin')
+                                            <span class="badge bg-danger">Super Admin</span>
+                                        @elseif($u->role === 'admin')
+                                            <span class="badge bg-warning text-dark">Admin</span>
                                         @elseif($u->role === 'dosen')
                                             <span class="badge bg-primary">Dosen</span>
                                         @else
@@ -160,6 +210,28 @@
                                             <small class="text-muted">Kelas: {{ $u->kelas ?? '-' }} (Sem {{ $u->semester ?? '-' }})</small>
                                         @endif
                                     </td>
+                                    <td>
+                                        @if($u->role === 'mahasiswa')
+                                            @php
+                                                $resList = $u->results;
+                                                $completedCount = $resList->count();
+                                                $totalSum = $resList->sum('score');
+                                                $avgVal = $completedCount > 0 ? round($resList->avg('score'), 1) : 0;
+                                            @endphp
+                                            @if($completedCount > 0)
+                                                <span class="badge bg-success-subtle text-success border border-success fw-bold px-2 py-1" style="font-size:0.75rem;" title="Total Nilai akumulasi UTS">
+                                                    <i class="bi bi-award-fill me-1"></i>Total: {{ number_format($totalSum, 1) }} (Rata-rata: {{ number_format($avgVal, 1) }})
+                                                </span>
+                                                <small class="d-block text-muted mt-0.5" style="font-size:0.72rem;">{{ $completedCount }} Sesi UTS Selesai</small>
+                                            @else
+                                                <span class="badge bg-light text-secondary border px-2 py-0.5" style="font-size:0.72rem;">
+                                                    Belum Ada Nilai
+                                                </span>
+                                            @endif
+                                        @else
+                                            <span class="text-muted small">-</span>
+                                        @endif
+                                    </td>
                                     <td class="text-end">
                                         <button class="btn btn-sm btn-outline-primary me-1" wire:click="editUser({{ $u->id }})" title="Edit">
                                             <i class="bi bi-pencil"></i>
@@ -171,7 +243,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="5" class="text-center py-4 text-muted">Tidak ditemukan pengguna yang sesuai.</td>
+                                    <td colspan="6" class="text-center py-4 text-muted">Tidak ditemukan pengguna yang sesuai.</td>
                                 </tr>
                                 @endforelse
                             </tbody>

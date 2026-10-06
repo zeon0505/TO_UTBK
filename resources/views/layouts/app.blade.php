@@ -27,18 +27,50 @@
         .theme-dark .text-muted { color: #8a8a9a !important; }
         .theme-dark .bg-light { background-color: #2d2d44 !important; color: #ced4da !important; }
         .theme-dark .input-group-text, .theme-dark .form-control, .theme-dark .form-select { background-color: #2d2d44 !important; border-color: #3f3f5a !important; color: #fff !important; }
-        .theme-dark .sidebar-link:hover { background-color: #2d2d44 !important; }
-        .theme-dark .sidebar-item.active > .sidebar-link { background-color: #435ebe !important; }
-        .pointer { cursor: pointer; }
-
-        /* Login entrance animation */
-        @keyframes loginZoomIn {
-            0%   { opacity: 0; transform: scale(0.92) translateY(16px); }
-            60%  { opacity: 1; transform: scale(1.01) translateY(-3px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
+        .sidebar-wrapper {
+            height: 100vh !important;
+            max-height: 100vh !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
         }
-        .login-entrance {
-            animation: loginZoomIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+        .sidebar-wrapper::-webkit-scrollbar { width: 5px; }
+        .sidebar-wrapper::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+        .theme-dark .sidebar-wrapper::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+        .rotate-180 { transform: rotate(180deg); }
+
+        /* Semester Submenu styling for maximum legibility */
+        .semester-sub-box {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 6px;
+            margin-top: 4px;
+            border: 1px solid #e2e8f0;
+        }
+        .theme-dark .semester-sub-box {
+            background: #252538;
+            border-color: #3f3f5a;
+        }
+        .semester-link-item {
+            color: #1e293b !important;
+            font-weight: 600 !important;
+            transition: all 0.15s ease;
+        }
+        .semester-link-item:hover {
+            background: #e2e8f0 !important;
+            color: #435ebe !important;
+        }
+        .theme-dark .semester-link-item {
+            color: #e2e8f0 !important;
+        }
+        .theme-dark .semester-link-item:hover {
+            background: #3f3f5a !important;
+            color: #ffffff !important;
+        }
+        .semester-link-item.active-sem {
+            background: #435ebe !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 8px rgba(67,94,190,0.35);
         }
     </style>
 </head>
@@ -63,11 +95,38 @@
                     <ul class="menu">
                         <li class="sidebar-title mt-2 mb-2 opacity-50 text-uppercase small">Menu Utama</li>
 
-                        <li class="sidebar-item {{ request()->is('dashboard') ? 'active' : '' }}">
+                        <li class="sidebar-item {{ request()->is('dashboard') && !request('semester') ? 'active' : '' }}">
                             <a href="/dashboard" class='sidebar-link' wire:navigate>
                                 <i class="bi bi-grid-fill"></i>
-                                <span>Dashboard</span>
+                                <span>Dashboard Utama</span>
                             </a>
+                        </li>
+
+                        <!-- Collapsible Kategori Semester Dropdown -->
+                        <li class="sidebar-item" x-data="{ open: {{ request()->has('semester') ? 'true' : 'false' }} }">
+                            <a href="#" @click.prevent="open = !open" class='sidebar-link d-flex align-items-center justify-content-between me-2'>
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-journal-bookmark-fill text-primary"></i>
+                                    <span>Kategori Semester</span>
+                                </div>
+                                <i class="bi bi-chevron-down small" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s ease;"></i>
+                            </a>
+                            <div class="semester-sub-box mx-2" x-show="open" x-collapse style="display: none;">
+                                <ul style="list-style: none; padding: 0; margin: 0;">
+                                    @for($sem = 1; $sem <= 8; $sem++)
+                                    <li class="my-1">
+                                        <a href="/dashboard?semester={{ $sem }}" 
+                                           class="sidebar-link semester-link-item py-2 px-3 rounded-3 text-decoration-none small d-flex align-items-center justify-content-between {{ request('semester') == $sem ? 'active-sem' : '' }}" 
+                                           wire:navigate>
+                                            <span><i class="bi bi-bookmark-star-fill me-2 text-primary opacity-75"></i>Semester {{ $sem }}</span>
+                                            @if(request('semester') == $sem)
+                                                <i class="bi bi-check-circle-fill fs-6 text-white"></i>
+                                            @endif
+                                        </a>
+                                    </li>
+                                    @endfor
+                                </ul>
+                            </div>
                         </li>
 
                         @if(auth()->check() && (auth()->user()->isDosen() || auth()->user()->isAdmin()))

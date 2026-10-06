@@ -13,6 +13,8 @@ class UserMonitor extends Component
 {
     public string $search = '';
     public string $roleFilter = 'all';
+    public string $selectedProdi = 'all';
+    public string $selectedSemester = 'all';
 
     public ?int $selectedUserId = null;
     public string $name = '';
@@ -20,9 +22,9 @@ class UserMonitor extends Component
     public string $role = 'mahasiswa';
     public ?string $nim = '';
     public ?string $nip = '';
-    public ?string $prodi = 'Teknik Informatika';
-    public ?int $semester = 5;
-    public ?string $kelas = 'TI-5A';
+    public ?string $prodi = 'Komunikasi dan Penyiaran Islam';
+    public ?int $semester = 1;
+    public ?string $kelas = 'KPI-1A';
     public string $password = '';
     public bool $isEditing = false;
 
@@ -32,6 +34,9 @@ class UserMonitor extends Component
         $currentUser = Auth::user();
         if ($currentUser && $currentUser->prodi) {
             $this->prodi = $currentUser->prodi;
+            if ($currentUser->role !== 'superadmin') {
+                $this->selectedProdi = $currentUser->prodi;
+            }
         }
     }
 
@@ -45,9 +50,9 @@ class UserMonitor extends Component
         $this->role = 'mahasiswa';
         $this->nim = '';
         $this->nip = '';
-        $this->prodi = ($currentUser && $currentUser->prodi) ? $currentUser->prodi : 'Teknik Informatika';
-        $this->semester = 5;
-        $this->kelas = 'TI-5A';
+        $this->prodi = ($currentUser && $currentUser->prodi) ? $currentUser->prodi : 'Komunikasi dan Penyiaran Islam';
+        $this->semester = 1;
+        $this->kelas = 'KPI-1A';
         $this->password = '';
         $this->isEditing = false;
     }
@@ -118,29 +123,44 @@ class UserMonitor extends Component
     {
         /** @var User $currentUser */
         $currentUser = Auth::user();
-        $query = User::query();
+        $query = User::with(['results.exam.course']);
 
-        if ($currentUser && $currentUser->prodi) {
+        // Scope check: Admin/Dosen can ONLY see users from their own Prodi
+        if ($currentUser->role !== 'superadmin' && $currentUser->prodi) {
             $query->where('prodi', $currentUser->prodi);
+        } else {
+            // Superadmin can filter by any Prodi or see all
+            if ($this->selectedProdi !== 'all') {
+                $query->where('prodi', $this->selectedProdi);
+            }
         }
 
+        // Semester Filter (for both Superadmin and Admin)
+        if ($this->selectedSemester !== 'all') {
+            $query->where('semester', (int) $this->selectedSemester);
+        }
+
+        // Role Filter
+        if ($this->roleFilter !== 'all') {
+            $query->where('role', $this->roleFilter);
+        }
+
+        // Search Filter
         if ($this->search) {
             $query->where(function($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
                   ->orWhere('email', 'like', '%' . $this->search . '%')
                   ->orWhere('nim', 'like', '%' . $this->search . '%')
-                  ->orWhere('nip', 'like', '%' . $this->search . '%');
+                  ->orWhere('nip', 'like', '%' . $this->search . '%')
+                  ->orWhere('kelas', 'like', '%' . $this->search . '%');
             });
-        }
-
-        if ($this->roleFilter !== 'all') {
-            $query->where('role', $this->roleFilter);
         }
 
         $users = $query->latest()->get();
 
         return view('livewire.admin.user-monitor', [
             'users' => $users,
+            'currentUser' => $currentUser,
         ]);
     }
 }

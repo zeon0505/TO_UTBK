@@ -44,6 +44,17 @@ class ExamControl extends Component
     {
         $this->exam = Exam::with(['course', 'questions.options'])->findOrFail($examId);
         
+        /** @var User $user */
+        $user = Auth::user();
+        if ($user && $user->isMahasiswa()) {
+            if ($user->prodi && $this->exam->course && $this->exam->course->prodi && $user->prodi !== $this->exam->course->prodi) {
+                abort(403, "Maaf, Ujian UTS ini khusus untuk Mahasiswa Program Studi {$this->exam->course->prodi}.");
+            }
+            if ($user->semester && $this->exam->course && $this->exam->course->semester && (int)$user->semester !== (int)$this->exam->course->semester) {
+                abort(403, "Maaf, Ujian UTS ini khusus untuk Mahasiswa Semester {$this->exam->course->semester}.");
+            }
+        }
+
         $this->result = Result::where('user_id', Auth::id())
             ->where('exam_id', $this->exam->id)
             ->first();
