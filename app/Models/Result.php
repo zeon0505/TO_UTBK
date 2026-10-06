@@ -2,16 +2,29 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Result extends Model
 {
-    protected $fillable = ['user_id', 'exam_id', 'section_data', 'total_score', 'started_at', 'finished_at'];
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'exam_id',
+        'score',
+        'total_correct_pg',
+        'total_essay_score',
+        'is_graded',
+        'violations_count',
+        'started_at',
+        'submitted_at',
+    ];
 
     protected $casts = [
+        'is_graded' => 'boolean',
         'started_at' => 'datetime',
-        'finished_at' => 'datetime',
-        'section_data' => 'array',
+        'submitted_at' => 'datetime',
     ];
 
     public function user()
@@ -22,10 +35,5 @@ class Result extends Model
     public function exam()
     {
         return $this->belongsTo(Exam::class);
-    }
-
-    public function userAnswers()
-    {
-        return $this->hasMany(UserAnswer::class);
     }
 }

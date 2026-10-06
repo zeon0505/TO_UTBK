@@ -1,230 +1,237 @@
 <div>
-    <div class="page-heading">
-        <div class="row">
-            <div class="col-12 col-md-6 order-md-1 order-last">
-                <h3>🤖 AI Question Generator</h3>
-                <p class="text-subtitle text-muted">Buat puluhan soal berkualitas UTBK hanya dalam hitungan detik menggunakan AI.</p>
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="bi bi-pencil-square text-primary me-2"></i>Input & Generator Soal UTS</h3>
+                <p class="text-muted mb-0">Kelola soal Ujian Tengah Semester (Pilihan Ganda & Essay) secara manual atau otomatis dengan AI.</p>
+            </div>
+            @if($selectedExamId)
+            <div>
+                <span class="badge bg-primary fs-6 px-3 py-2">
+                    <i class="bi bi-calculator me-1"></i> Total Bobot Soal: {{ number_format($totalWeight, 1) }} / 100
+                </span>
+            </div>
+            @endif
+        </div>
+    </div>
+
+    @if (session()->has('success'))
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <!-- Exam Selector Bar -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-3 bg-light rounded-3">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold text-dark mb-1"><i class="bi bi-filter me-1"></i> Pilih Sesi UTS Target:</label>
+                    <select class="form-select border-primary fw-bold" wire:model.live="selectedExamId">
+                        <option value="">-- Pilih Sesi UTS --</option>
+                        @foreach($exams as $ex)
+                            <option value="{{ $ex->id }}">
+                                {{ $ex->course->code ?? 'MK' }} - {{ $ex->course->name ?? 'Mata Kuliah' }} | {{ $ex->title }} (Token: {{ $ex->token }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn {{ $mode === 'single' ? 'btn-primary' : 'btn-outline-primary' }} fw-bold" wire:click="setMode('single')">
+                            <i class="bi bi-file-earmark-plus me-1"></i> Input Manual
+                        </button>
+                        <button type="button" class="btn {{ $mode === 'ai' ? 'btn-success' : 'btn-outline-success' }} fw-bold" wire:click="setMode('ai')">
+                            <i class="bi bi-robot me-1"></i> Generator AI Gemini
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <section class="section">
-        <div class="row mb-4">
-            <div class="col-12 text-center">
-                <style>
-                    .mode-switcher {
-                        background-color: #252538 !important;
-                        border: 1px solid rgba(255,255,255,0.1);
-                        padding: 5px;
-                    }
-                    .mode-btn {
-                        transition: all 0.3s ease;
-                    }
-                    .mode-btn.inactive {
-                        color: rgba(255, 255, 255, 0.6) !important;
-                    }
-                    .mode-btn.inactive:hover {
-                        color: #fff !important;
-                        background-color: rgba(255, 255, 255, 0.05);
-                    }
-                </style>
-                <div class="btn-group mode-switcher shadow-sm rounded-pill">
-                    <button wire:click="setMode('manual')" class="btn btn-sm rounded-pill px-4 mode-btn {{ $mode == 'manual' ? 'btn-primary shadow-sm' : 'inactive' }}">
-                        <i class="bi bi-pencil-square me-1"></i> Input Manual
-                    </button>
-                    <button wire:click="setMode('ai')" class="btn btn-sm rounded-pill px-4 mode-btn {{ $mode == 'ai' ? 'btn-primary shadow-sm' : 'inactive' }}">
-                        <i class="bi bi-robot me-1"></i> AI Generate
-                    </button>
+    @if(!$selectedExamId)
+        <div class="alert alert-warning text-center py-4">
+            <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+            <strong>Silakan pilih Sesi UTS terlebih dahulu di atas untuk mulai menginput soal!</strong>
+        </div>
+    @else
+
+    <div class="row g-4">
+        <!-- Input Form Section -->
+        <div class="col-lg-6">
+            @if($mode === 'single')
+            <!-- Form Manual -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent py-3">
+                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-plus-circle-fill text-primary me-2"></i>Form Input Soal UTS Manual</h5>
+                </div>
+                <div class="card-body">
+                    <form wire:submit.prevent="saveSingleQuestion">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Tipe Soal</label>
+                                <select class="form-select" wire:model.live="questionType">
+                                    <option value="multiple_choice">Pilihan Ganda (PG)</option>
+                                    <option value="essay">Essay / Uraian</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Bobot Nilai Soal</label>
+                                <input type="number" step="0.5" class="form-control fw-bold" wire:model="weight" min="0.5" max="100">
+                                @error('weight') <small class="text-danger">{{ $message }}</small> @enderror
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Teks Pertanyaan / Studi Kasus UTS</label>
+                            <textarea class="form-control" wire:model="questionText" rows="4" placeholder="Tuliskan isi pertanyaan atau skenario studi kasus..."></textarea>
+                            @error('questionText') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+
+                        @if($questionType === 'multiple_choice')
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold d-flex justify-content-between align-items-center">
+                                <span>Opsi Jawaban & Kunci Jawaban Benar</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" wire:click="addOption">+ Tambah Opsi</button>
+                            </label>
+                            @foreach($options as $index => $opt)
+                            <div class="input-group mb-2">
+                                <div class="input-group-text bg-white">
+                                    <input class="form-check-input mt-0" type="radio" name="correctOption" value="{{ $index }}" wire:model="correctOptionIndex" title="Tandai sebagai Jawaban Benar">
+                                </div>
+                                <span class="input-group-text bg-light font-monospace fw-bold">{{ chr(65 + $index) }}</span>
+                                <input type="text" class="form-control" wire:model="options.{{ $index }}.text" placeholder="Isi opsi {{ chr(65 + $index) }}">
+                                @if(count($options) > 2)
+                                <button class="btn btn-outline-danger" type="button" wire:click="removeOption({{ $index }})"><i class="bi bi-trash"></i></button>
+                                @endif
+                            </div>
+                            @endforeach
+                            <small class="text-muted d-block mt-1"><i class="bi bi-info-circle me-1"></i> Pilih radio button di sebelah kiri untuk menandai <strong>Kunci Jawaban Benar</strong>.</small>
+                        </div>
+                        @endif
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Rubrik Penilaian / Kunci Acuan Dosen</label>
+                            <textarea class="form-control" wire:model="explanation" rows="2" placeholder="Catatan pembahasan atau poin rubrik penilaian..."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary fw-bold w-100 py-2.5 shadow-sm">
+                            <i class="bi bi-save-fill me-2"></i>Simpan Soal ke UTS
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            @elseif($mode === 'ai')
+            <!-- Generator AI Gemini -->
+            <div class="card border-0 shadow-sm border-start border-4 border-success">
+                <div class="card-header bg-transparent py-3">
+                    <h5 class="card-title mb-0 fw-bold text-success"><i class="bi bi-robot me-2"></i>Generator Soal Otomatis dengan AI Gemini</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">AI akan membuat soal UTS standar perkuliahan (PG / Essay) secara instan beserta kunci jawaban & pembahasannya.</p>
+
+                    <form wire:submit.prevent="generateWithAI">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Topik / Sub-Materi Perkuliahan</label>
+                            <input type="text" class="form-control" wire:model="aiTopic" placeholder="contoh: Arsitektur Microservices & REST API Security">
+                            @error('aiTopic') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Tipe Soal yang Di-generate</label>
+                                <select class="form-select" wire:model="aiQuestionType">
+                                    <option value="multiple_choice">Pilihan Ganda (PG)</option>
+                                    <option value="essay">Essay / Uraian</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Jumlah Soal</label>
+                                <input type="number" class="form-control" wire:model="aiCount" min="1" max="10">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success fw-bold w-100 py-2.5 shadow-sm" @if($isGenerating) disabled @endif>
+                            @if($isGenerating)
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                Sedang Meng-generate Soal dengan AI...
+                            @else
+                                <i class="bi bi-magic me-2"></i>Generate & Simpan Otomatis
+                            @endif
+                        </button>
+                    </form>
+                </div>
+            </div>
+            @endif
+        </div>
+
+        <!-- Question List View -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-list-stars text-primary me-2"></i>Daftar Soal Sesi UTS Ini</h5>
+                    <span class="badge bg-secondary">{{ count($questions) }} Soal</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        @forelse($questions as $qIndex => $q)
+                        <div class="list-group-item p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="badge bg-dark me-1">Soal #{{ count($questions) - $qIndex }}</span>
+                                    @if($q->type === 'multiple_choice')
+                                        <span class="badge bg-primary">Pilihan Ganda</span>
+                                    @else
+                                        <span class="badge bg-warning text-dark">Essay / Uraian</span>
+                                    @endif
+                                    <span class="badge bg-success ms-1">Bobot: {{ number_format($q->weight, 1) }}</span>
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="confirm('Hapus soal ini?') || event.stopImmediatePropagation()" wire:click="deleteQuestion({{ $q->id }})" title="Hapus Soal">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+
+                            <p class="fw-semibold mb-2 text-dark" style="white-space: pre-line;">{{ $q->question_text }}</p>
+
+                            @if($q->type === 'multiple_choice')
+                            <div class="row g-2 mb-2">
+                                @foreach($q->options as $oIdx => $opt)
+                                <div class="col-6">
+                                    <div class="p-2 border rounded-2 small {{ $opt->is_correct ? 'bg-success-subtle border-success text-success fw-bold' : 'bg-light' }}">
+                                        {{ chr(65 + $oIdx) }}. {{ $opt->option_text }}
+                                        @if($opt->is_correct) <i class="bi bi-check-circle-fill ms-1"></i> @endif
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                            @endif
+
+                            @if($q->explanation)
+                            <div class="p-2 bg-light rounded-2 text-muted small mt-2">
+                                <strong>Rubrik/Pembahasan:</strong> {{ $q->explanation }}
+                            </div>
+                            @endif
+                        </div>
+                        @empty
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-journal-x display-4 d-block mb-2 text-muted"></i>
+                            Belum ada soal pada sesi UTS ini.<br>Gunakan form di sebelah kiri untuk menambah soal.
+                        </div>
+                        @endforelse
+                    </div>
                 </div>
             </div>
         </div>
-
-        <div class="row">
-            <div class="col-md-5">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body">
-                        <h5 class="fw-bold mb-4">{{ $mode == 'ai' ? '🤖 Konfigurasi AI' : '✍️ Input Soal Manual' }}</h5>
-                        
-                        @if($mode == 'ai')
-                            <form wire:submit.prevent="generate">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">Topik / Materi</label>
-                                    <input type="text" class="form-control" wire:model="topic" placeholder="Contoh: Logaritma, Termodinamika, dll">
-                                    @error('topic') <span class="text-danger small">{{ $message }}</span> @enderror
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">Tingkat Kesulitan</label>
-                                    <select class="form-select" wire:model="difficulty">
-                                        <option value="Mudah">Mudah</option>
-                                        <option value="Sedang">Sedang</option>
-                                        <option value="Sulit">Sulit (HOTs)</option>
-                                    </select>
-                                </div>
-                        @else
-                            <div class="alert alert-secondary border-0 small mb-3" style="background-color: rgba(255,255,255,0.03); color: #cbd5e1;">
-                                <h6 class="fw-bold mb-1"><i class="bi bi-info-circle me-1"></i> Format Bulk Import:</h6>
-                                <p class="mb-0 text-muted" style="font-size: 0.75rem;">
-                                    - Pisahkan antar soal dengan <b>Double Enter</b>.<br>
-                                    - Gunakan kurung kurawal <b>{angka}</b> di akhir pilihan untuk skor khusus.<br>
-                                    - Contoh: <i>A. Sangat Setuju {5}</i><br>
-                                    - Tetap gunakan <b>*</b> untuk jawaban yang benar (Skor Standar).
-                                </p>
-                            </div>
-
-                            <!-- Magic Scan (OCR) -->
-                            <div class="card border-0 bg-primary bg-opacity-10 mb-4 rounded-4 overflow-hidden">
-                                <div class="card-body p-3">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-camera-fill me-1"></i> Magic Scan (Foto/PDF)</h6>
-                                            <small class="text-muted" style="font-size: 0.7rem;">Upload Foto atau PDF soal, AI akan mengetiknya.</small>
-                                        </div>
-                                        <label for="scannedImage" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm mb-0">
-                                            <i class="bi bi-upload me-1"></i> Pilih File
-                                            <input type="file" id="scannedImage" wire:model.live="scannedImage" class="d-none" accept="image/*,.pdf">
-                                        </label>
-                                    </div>
-                                    <div wire:loading wire:target="scannedImage" class="mt-2 text-primary small fw-bold">
-                                        <div class="spinner-border spinner-border-sm me-1"></div> Sedang Membaca Gambar...
-                                    </div>
-                                </div>
-                            </div>
-
-                            <form wire:submit.prevent="saveManual">
-                                <div class="row mb-3">
-                                    <div class="col-6">
-                                        <label class="form-label fw-bold small">Bobot Skor (IRT)</label>
-                                        <input type="number" step="0.1" class="form-control" wire:model="manualWeight">
-                                        @error('manualWeight') <span class="text-danger small">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div class="col-6 text-end">
-                                        <span class="badge bg-info">Pro Mode: Multi-Entry</span>
-                                    </div>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <label class="form-label fw-bold mb-0">Input Massal Soal & Opsi</label>
-                                    <button type="button" wire:click="smartAIParse" wire:loading.attr="disabled" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
-                                        <span wire:loading.remove wire:target="smartAIParse">🪄 AI Smart Format</span>
-                                        <span wire:loading wire:target="smartAIParse">Merapikan...</span>
-                                    </button>
-                                </div>
-                                <div class="mb-3">
-                                    <textarea class="form-control" wire:model="bulkText" rows="12" 
-                                        placeholder="Paste teks soal berantakan di sini..."></textarea>
-                                    @error('bulkText') <span class="text-danger small">{{ $message }}</span> @enderror
-                                </div>
-                        @endif
-
-                    @if(session()->has('success'))
-                        <div class="alert alert-success alert-dismissible show fade shadow border-0 py-3 mb-4" role="alert">
-                            <div class="d-flex align-items-center">
-                                <span class="fs-2 me-3">✅</span>
-                                <div>
-                                    <h6 class="mb-0 fw-bold">BERHASIL DISIMPAN!</h6>
-                                    <p class="mb-0 small text-dark">{{ session('success') }}</p>
-                                </div>
-                            </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    @endif
-
-                    @if(session()->has('error'))
-                        <div class="alert alert-danger alert-dismissible show fade shadow border-0 py-3 mb-4" role="alert">
-                            <div class="d-flex align-items-center">
-                                <span class="fs-2 me-3">⚠️</span>
-                                <div>
-                                    <h6 class="mb-0 fw-bold small">ADA MASALAH TEKNIS!</h6>
-                                    <p class="mb-0 small text-dark">{{ session('error') }}</p>
-                                </div>
-                            </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    @endif
-
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-body p-4">
-                            <div class="mb-0">
-                                <label class="form-label fw-bold small text-primary uppercase">1. Pilih Target Sub-Tes (WAJIB)</label>
-                                <select class="form-select form-select-lg shadow-none border-2 border-primary rounded-3" wire:model="selectedSubTest">
-                                    <option value="">-- PILIH TUJUAN UJIAN DI SINI --</option>
-                                    @foreach($subTests as $st)
-                                        <option value="{{ $st->id }}">{{ $st->exam->title }} - {{ $st->title }}</option>
-                                    @endforeach
-                                </select>
-                                @error('selectedSubTest') <span class="text-danger fw-bold small">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-                    </div>
-
-                    @if($mode == 'manual')
-                    <div class="card border-0 shadow-sm overflow-hidden mb-4">
-                        <div class="card-body p-4">
-                            <div class="d-flex align-items-center mb-4">
-                                <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
-                                    <i class="bi bi-magic text-primary fs-4"></i>
-                                </div>
-                                <h5 class="mb-0 fw-bold">Magic Manual Editor</h5>
-                            </div>
-
-                            <button type="button" wire:click="saveManual" wire:loading.attr="disabled" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-lg border-3 border-white">
-                                <span wire:loading.remove wire:target="saveManual">
-                                    🚀 Simpan Semua Soal Sekarang
-                                </span>
-                                <span wire:loading wire:target="saveManual">
-                                    <span class="spinner-border spinner-border-sm me-2"></span> AI SEDANG BEKERJA...
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-                    @else
-                    <form wire:submit.prevent="generate" class="card border-0 shadow-sm p-4 mb-4">
-                         <!-- ... content AI hidden for brevity ... -->
-                         <button type="submit" class="btn btn-primary w-100 fw-bold py-3 rounded-pill shadow" wire:loading.attr="disabled" wire:target="generate">
-                            <span wire:loading.remove wire:target="generate">🪄 Generate Soal Sekarang</span>
-                            <span wire:loading wire:target="generate">AI Sedang Merancang...</span>
-                        </button>
-                    </form>
-                    @endif
-
-                @if(!empty($generatedQuestions))
-                    <div class="card shadow-sm border-0">
-                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 fw-bold">Pratinjau Hasil AI</h5>
-                            <button wire:click="saveAll" class="btn btn-success fw-bold px-4 rounded-pill shadow-sm">
-                                <i class="bi bi-cloud-arrow-up-fill me-2"></i> Simpan Semua Soal
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            @foreach($generatedQuestions as $index => $q)
-                                <div class="mb-4 p-3 border rounded-4 bg-light bg-opacity-50">
-                                    <h6 class="fw-bold mb-3">Soal #{{ $index + 1 }}</h6>
-                                    <p class="mb-3 fs-6">{{ $q['question'] }}</p>
-                                    <div class="row g-2">
-                                        @foreach($q['options'] as $o)
-                                            <div class="col-6">
-                                                <div class="p-2 border rounded-3 {{ $o['is_correct'] ? 'bg-success bg-opacity-10 border-success' : 'bg-white' }}">
-                                                    <small class="d-block {{ $o['is_correct'] ? 'text-success fw-bold' : '' }}">
-                                                        {{ $o['text'] }} 
-                                                        @if($o['is_correct']) <i class="bi bi-check-lg ms-1"></i> @endif
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                @else
-                    <div class="card shadow-sm border-0 d-flex align-items-center justify-content-center p-5 text-center bg-light bg-opacity-25" style="border: 2px dashed #dee2e6 !important;">
-                        <div class="stats-icon purple mb-3" style="width: 80px; height: 80px;">
-                            <i class="bi bi-robot fs-1 text-white"></i>
-                        </div>
-                        <h4 class="fw-bold">Belum Ada Soal</h4>
-                        <p class="text-muted">Isi topik di sebelah kiri untuk mulai merancang soal dengan AI.</p>
-                    </div>
-                @endif
-            </div>
-        </div>
-    </section>
+    </div>
+    @endif
 </div>

@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UTBK 2025 | Solusi Simulasi Terpercaya</title>
+    <title>Portal Ujian Tengah Semester (UTS) Kampus</title>
     
-    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
@@ -113,14 +112,14 @@
     <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container">
             <a class="navbar-brand fw-bold text-dark fs-4" href="/">
-                UTBK<span class="text-primary">2025</span>
+                <i class="bi bi-mortarboard-fill text-primary me-2"></i>UTS<span class="text-primary">KAMPUS</span>
             </a>
             <div class="ms-auto d-flex align-items-center gap-4">
                 @auth
-                    <a href="/dashboard" class="btn btn-primary">Dashboard</a>
+                    <a href="/dashboard" class="btn btn-primary">Buka Dashboard</a>
                 @else
-                    <a href="/login" class="text-secondary text-decoration-none fw-medium d-none d-sm-block">Login</a>
-                    <a href="/register" class="btn btn-primary">Mulai Sekarang</a>
+                    <a href="/login" class="text-secondary text-decoration-none fw-medium d-none d-sm-block">Masuk</a>
+                    <a href="/register" class="btn btn-primary">Daftar Akun</a>
                 @endauth
             </div>
         </div>
@@ -130,78 +129,68 @@
         <div class="container">
             <div class="row align-items-center g-5">
                 <div class="col-lg-6">
-                    <span class="badge-soft">Edisi Persiapan SNBT 2025</span>
-                    <h1 class="display-4 fw-bold text-slate-900 mb-4">Lulus PTN Impian dengan Persiapan Terukur.</h1>
-                    <p class="text-secondary fs-5 mb-5">Platform simulasi ujian dengan sistem penilaian IRT resmi, analisis peluang masuk PTN, dan pembahasan terlengkap untuk pejuang UTBK.</p>
+                    <span class="badge-soft">Sistem Ujian Akademik Kampus</span>
+                    <h1 class="display-4 fw-bold text-slate-900 mb-4">Portal Ujian Tengah Semester Digital.</h1>
+                    <p class="text-secondary fs-5 mb-5">Platform evaluasi perkuliahan terintegrasi untuk Mahasiswa & Dosen Pengampu dengan dukungan Pilihan Ganda, Essay, Timer Otomatis, dan Generator AI Gemini.</p>
                     <div class="d-flex flex-wrap gap-3">
-                        <a href="/register" class="btn btn-primary btn-lg px-4">Daftar Member</a>
-                        <a href="#tentang" class="btn btn-outline btn-lg px-4">Pelajari Lebih Lanjut</a>
+                        <a href="/login" class="btn btn-primary btn-lg px-4">Masuk ke Portal</a>
+                        <a href="#fitur" class="btn btn-outline btn-lg px-4">Lihat Fitur UTS</a>
                     </div>
                 </div>
-                <div class="col-lg-6">
-                    <img src="https://cdni.iconscout.com/illustration/premium/thumb/online-learning-2559740-2144865.png" class="img-fluid" alt="UTBK 2025">
+                <div class="col-lg-6 text-center">
+                    <img src="https://cdni.iconscout.com/illustration/premium/thumb/online-learning-2559740-2144865.png" class="img-fluid" alt="UTS Kampus">
                 </div>
             </div>
         </div>
     </header>
 
-    <section id="tentang" class="py-5">
+    <section id="fitur" class="py-5">
         <div class="container py-5">
             <div class="row justify-content-center text-center mb-5">
                 <div class="col-lg-8">
-                    <h2 class="section-title">Kenapa Memilih Kami?</h2>
-                    <p class="text-secondary">Kami menyediakan ekosistem belajar yang fokus pada hasil dan akurasi skor.</p>
+                    <h2 class="section-title">Fitur Unggulan UTS Kampus</h2>
+                    <p class="text-secondary">Ekosistem lengkap pelaksanaan Ujian Tengah Semester yang fleksibel, akurat, dan transparan.</p>
                 </div>
             </div>
             
             <div class="row g-4">
                 <div class="col-md-4">
                     <div class="feature-box">
-                        <div class="icon-wrapper"><i class="bi bi-bar-chart-fill"></i></div>
-                        <h5 class="fw-bold">Penilaian IRT Asli</h5>
-                        <p class="text-secondary small mb-0">Skor Anda dihitung berdasarkan bobot tingkat kesulitan soal, sama seperti sistem penilaian Panitia Pusat UTBK.</p>
+                        <div class="icon-wrapper"><i class="bi bi-file-earmark-code-fill"></i></div>
+                        <h5 class="fw-bold">Input PG & Essay</h5>
+                        <p class="text-secondary small mb-0">Dukungan tipe soal Pilihan Ganda otomatis dan Essay/Uraian dengan rubrik penskoran Dosen.</p>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="feature-box">
-                        <div class="icon-wrapper"><i class="bi bi-search"></i></div>
-                        <h5 class="fw-bold">Rasionalisasi PTN</h5>
-                        <p class="text-secondary small mb-0">Analisis peluang lolos di berbagai universitas unggulan (UI, ITB, UGM) berdasarkan skor riil yang Anda peroleh.</p>
+                        <div class="icon-wrapper"><i class="bi bi-robot"></i></div>
+                        <h5 class="fw-bold">AI Gemini Question Generator</h5>
+                        <p class="text-secondary small mb-0">Generate soal perkuliahan otomatis berbasis studi kasus dan kurikulum RPS perkuliahan.</p>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="feature-box">
-                        <div class="icon-wrapper"><i class="bi bi-shield-check"></i></div>
-                        <h5 class="fw-bold">Simulasi Realistik</h5>
-                        <p class="text-secondary small mb-0">Antarmuka dan sistem navigasi bab yang didesain semirip mungkin dengan aplikasi UTBK yang sesungguhnya.</p>
+                        <div class="icon-wrapper"><i class="bi bi-key-fill"></i></div>
+                        <h5 class="fw-bold">Sistem Token UTS</h5>
+                        <p class="text-secondary small mb-0">Keamanan pengerjaan ujian berbasis Token Akses per sesi perkuliahan.</p>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
-
-    <section class="py-5 bg-light">
-        <div class="container py-5 text-center">
-            <h2 class="section-title mb-4">Siap untuk Mulai Belajar?</h2>
-            <p class="text-secondary mb-5 fs-5">Gabung bersama ribuan siswa lainnya dan amankan kursi Anda di PTN tahun ini.</p>
-            <a href="/register" class="btn btn-primary btn-lg">Daftar Gratis Sekarang</a>
         </div>
     </section>
 
     <footer>
         <div class="container">
             <div class="row g-4 d-flex justify-content-between">
-                <div class="col-md-4">
-                    <h4 class="fw-bold mb-3">UTBK<span class="text-primary">2025</span></h4>
-                    <p class="text-secondary small">Platform edukasi persiapan SNBT dengan standar penilaian IRT resmi. Membantu siswa meraih impian masuk Perguruan Tinggi Negeri.</p>
+                <div class="col-md-6">
+                    <h4 class="fw-bold mb-2"><i class="bi bi-mortarboard-fill text-primary me-2"></i>UTS<span class="text-primary">KAMPUS</span></h4>
+                    <p class="text-secondary small mb-0">Portal Ujian Tengah Semester & Evaluasi Akademik Perkuliahan.</p>
                 </div>
-                <div class="col-md-4 text-md-end">
-                    <p class="text-secondary small mb-1">© 2025 Platform UTBK. All rights reserved.</p>
-                    <p class="fw-bold text-slate-800 mb-0">Developed by <span class="text-primary">Fajar Pranayoga</span></p>
+                <div class="col-md-6 text-md-end">
+                    <p class="text-secondary small mb-0">© 2026 Portal UTS Kampus. All rights reserved.</p>
                 </div>
             </div>
         </div>
     </footer>
-
 </body>
 </html>

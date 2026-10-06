@@ -45,6 +45,11 @@
                             </div>
 
                             <div class="d-grid gap-2">
+                                <button wire:click="resetUserSession({{ $session->id }})" 
+                                        wire:confirm="Reset ujian mahasiswa ini? Semua jawaban & pelanggaran akan dikosongkan dan mahasiswa dapat mengulang dari awal."
+                                        class="btn btn-warning rounded-pill fw-bold text-dark">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> PULIHKAN &amp; RESET UJIAN
+                                </button>
                                 <button wire:click="kickUser({{ $session->id }})" 
                                         wire:confirm="PERINGATAN! Anda akan mengeluarkan peserta ini dan memberinya skor 0 secara otomatis. Lanjutkan?"
                                         class="btn btn-outline-danger rounded-pill fw-bold">

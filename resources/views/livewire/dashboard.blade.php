@@ -1,307 +1,514 @@
 <div>
-    <div class="page-heading">
-        <div class="row">
-            <div class="col-12 col-md-6 order-md-1 order-last">
-                <h3>Dashboard Siswa</h3>
-                <p class="text-subtitle text-muted">Selamat datang kembali, <strong>{{ Auth::user()->name }}</strong>! Mari asah kemampuanmu hari ini.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Rank Tier Feature -->
+    <!-- Welcome Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
-                <div class="card-body p-4 d-flex align-items-center justify-content-between" style="background: linear-gradient(90deg, #1a1c2c 0%, #435ebe22 50%, #1a1c2c 100%); border: 1px solid rgba(255,255,255,0.05);">
-                    <div class="d-flex align-items-center">
-                        <div class="tier-badge-container me-4 position-relative">
-                            <div class="stats-icon mb-0 d-flex align-items-center justify-content-center shadow-lg" 
-                                 style="background-color: {{ $tier['color'] }}; width: 68px; height: 68px; border: 3px solid rgba(255,255,255,0.3); border-radius: 1.2rem;">
-                                <i class="bi {{ $tier['icon'] }} text-dark fs-2"></i>
-                            </div>
-                            <div class="position-absolute bottom-0 end-0 bg-white rounded-circle p-1 d-flex align-items-center justify-content-center shadow-sm" style="width: 25px; height: 25px; transform: translate(20%, 20%); border: 2px solid #1a1c2c;">
-                                <i class="bi bi-star-fill text-warning" style="font-size: 0.7rem;"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <h6 class="text-white-50 mb-1 fw-bold text-uppercase" style="letter-spacing: 2.5px; font-size: 0.65rem;">Global Ranking Tier</h6>
-                            <h2 class="text-white fw-extrabold mb-0" style="text-shadow: 0 0 15px {{ $tier['color'] }}66; font-size: 1.8rem;">{{ $tier['name'] }}</h2>
-                            <p class="mb-0 text-white-50 small mt-1">
-                                <i class="bi bi-graph-up-arrow me-1"></i> Kamu berada di <b>Top {{ 100 - $tier['percentile'] }}%</b> Nasional
+            <div class="card bg-primary text-white border-0 shadow-sm overflow-hidden position-relative" style="background: linear-gradient(135deg, #435ebe 0%, #25396e 100%);">
+                <div class="card-body p-4 p-md-5 position-relative z-1">
+                    <div class="row align-items-center">
+                        <div class="col-lg-8">
+                            <span class="badge bg-white text-primary fw-bold mb-2">Portal UTS Kampus T.A. 2026/2027</span>
+                            <h2 class="fw-bold mb-2 text-white">Selamat Datang, {{ auth()->user()->name }}!</h2>
+                            <p class="mb-0 text-white-50 fs-6">
+                                @if(auth()->user()->isDosen())
+                                    Dosen Pengampu | NIP: <strong>{{ auth()->user()->nip ?? '-' }}</strong> | Program Studi: <strong>{{ auth()->user()->prodi ?? '-' }}</strong>
+                                @elseif(auth()->user()->isAdmin())
+                                    Administrator Sistem Akademik | Program Studi: <strong>{{ auth()->user()->prodi ?? 'Semua Prodi' }}</strong>
+                                @else
+                                    Mahasiswa | NIM: <strong>{{ auth()->user()->nim ?? '-' }}</strong> | Kelas: <strong>{{ auth()->user()->kelas ?? '-' }}</strong> | Semester: <strong>{{ auth()->user()->semester ?? '-' }}</strong>
+                                @endif
                             </p>
                         </div>
-                    </div>
-                    <div class="d-none d-lg-block text-end me-3">
-                        <div class="d-flex align-items-center mb-1">
-                            <span class="text-white-50 small me-2">Progress</span>
-                            <div class="progress" style="height: 6px; width: 180px; background-color: rgba(255,255,255,0.1);">
-                                <div class="progress-bar bg-primary" role="progressbar" style="width: {{ $tier['percentile'] }}%;"></div>
+                        @if(auth()->user()->isMahasiswa())
+                        <div class="col-lg-4 mt-3 mt-lg-0 text-lg-end">
+                            <div class="bg-white p-3 rounded-3 shadow-sm text-start text-dark">
+                                <label class="form-label text-dark fw-bold mb-1"><i class="bi bi-key-fill text-primary me-1"></i> Masukkan Token UTS</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control text-uppercase fw-bold border-primary" wire:model="tokenInput" placeholder="Contoh: UTS123">
+                                    <button class="btn btn-primary fw-bold" wire:click="startExamWithToken">
+                                        Masuk <i class="bi bi-arrow-right"></i>
+                                    </button>
+                                </div>
+                                @if($errorMessage)
+                                    <small class="text-danger mt-1 d-block fw-semibold">{{ $errorMessage }}</small>
+                                @endif
                             </div>
                         </div>
-                        <small class="text-white-50" style="font-size: 0.7rem;">Gapai skor lebih tinggi untuk naik Rank!</small>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    @if (session()->has('error'))
-        <div class="alert alert-danger alert-dismissible show fade">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    <!-- Stats Section -->
-    <div class="row">
-        <div class="col-6 col-lg-4 col-md-6">
-            <div class="card shadow-sm border-0 glass-morphism">
-                <div class="card-body px-4 py-4-5">
-                    <div class="row">
-                        <div class="col-md-4 col-lg-12 col-xl-4 col-xxl-5 d-flex justify-content-start ">
-                            <div class="stats-icon purple mb-2">
-                                <i class="bi bi-journal-check"></i>
-                            </div>
-                        </div>
-                        <div class="col-md-8 col-lg-12 col-xl-8 col-xxl-7">
-                            <h6 class="text-muted font-semibold">Total Tryout</h6>
-                            <h6 class="font-extrabold mb-0">{{ $stats['total_exams'] }}</h6>
-                        </div>
+    @if(auth()->user()->isDosen() || auth()->user()->isAdmin())
+    <!-- Stats Row for Dosen/Admin -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stats-icon bg-primary text-white rounded-3 p-3 me-3 d-flex align-items-center justify-content-center" style="width:54px; height:54px;">
+                        <i class="bi bi-journal-bookmark-fill fs-3"></i>
                     </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-4 col-md-6">
-            <div class="card shadow-sm border-0 glass-morphism">
-                <div class="card-body px-4 py-4-5">
-                    <div class="row">
-                        <div class="col-md-4 col-lg-12 col-xl-4 col-xxl-5 d-flex justify-content-start ">
-                            <div class="stats-icon blue mb-2">
-                                <i class="bi bi-star-fill"></i>
-                            </div>
-                        </div>
-                        <div class="col-md-8 col-lg-12 col-xl-8 col-xxl-7">
-                            <h6 class="text-muted font-semibold">Rata-rata Skor</h6>
-                            <h6 class="font-extrabold mb-0">{{ number_format($stats['average_score'], 1) }}</h6>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-4 col-md-6">
-            <div class="card shadow-sm border-0 glass-morphism">
-                <div class="card-body px-4 py-4-5">
-                    <div class="row">
-                        <div class="col-md-4 col-lg-12 col-xl-4 col-xxl-5 d-flex justify-content-start ">
-                            <div class="stats-icon green mb-2">
-                                <i class="bi bi-trophy"></i>
-                            </div>
-                        </div>
-                        <div class="col-md-8 col-lg-12 col-xl-8 col-xxl-7">
-                            <h6 class="text-muted font-semibold">Ranking Global</h6>
-                            <h6 class="font-extrabold mb-0">{{ $stats['global_rank'] }}</h6>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-12 col-lg-7">
-            <div class="card shadow-sm border-0 mb-4 p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="fw-bold mb-0">Statistik Kemajuan</h4>
-                    <span class="badge bg-light-primary text-primary px-3 rounded-pill small">10 Tryout Terakhir</span>
-                </div>
-                <div style="height: 300px;">
-                    <canvas id="scoreChart"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-lg-5">
-             <div class="card shadow-sm border-0 mb-4 p-4 text-white" style="background: linear-gradient(135deg, #1e00ff, #9933ff);">
-                <h4 class="fw-bold mb-1 text-white">Latihan Cepat!</h4>
-                <p class="small text-white-50 mb-3">Ingin fokus belajar spesifik? Pilih matkul tujuanmu:</p>
-                
-                <form wire:submit.prevent="startPractice">
-                    <div class="mb-3">
-                        <label class="form-label text-white fw-bold">Pilih Materi / Sub-Tes</label>
-                        <select class="form-select border-0 shadow-sm" wire:model="selectedPracticeSubject" style="background-color: rgba(255, 255, 255, 0.9);">
-                            <option value="">-- Pilih Materi --</option>
-                            @foreach($this->practiceSubjects as $st)
-                                <option value="{{ $st->id }}">{{ $st->title }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-light w-100 fw-bold text-primary shadow-sm" wire:loading.attr="disabled">
-                        <span wire:loading.remove wire:target="startPractice"><i class="bi bi-play-fill me-1"></i> Mulai Fokus Belajar</span>
-                        <span wire:loading wire:target="startPractice">Menyiapkan Soal...</span>
-                    </button>
-                </form>
-             </div>
-
-             <div class="card shadow-sm border-0 mb-4 p-4">
-                <h4 class="fw-bold mb-3">Tips Hari Ini</h4>
-                <div class="d-flex align-items-start mb-3">
-                    <div class="stats-icon purple me-3" style="width: 40px; height: 40px;"><i class="bi bi-lightbulb"></i></div>
                     <div>
-                        <h6 class="fw-bold mb-1">Fokus pada Kelemahan</h6>
-                        <p class="text-muted small">Berdasarkan skor kamu, materi Pengetahuan Kuantitatif masih bisa ditingkatkan lagi.</p>
+                        <h6 class="text-muted mb-1 text-uppercase small">Mata Kuliah</h6>
+                        <h3 class="fw-bold mb-0">{{ $coursesCount }}</h3>
                     </div>
                 </div>
-                <div class="d-flex align-items-start">
-                    <div class="stats-icon green me-3" style="width: 40px; height: 40px;"><i class="bi bi-clock-history"></i></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stats-icon bg-success text-white rounded-3 p-3 me-3 d-flex align-items-center justify-content-center" style="width:54px; height:54px;">
+                        <i class="bi bi-calendar-check-fill fs-3"></i>
+                    </div>
                     <div>
-                        <h6 class="fw-bold mb-1">Manajemen Waktu</h6>
-                        <p class="text-muted small">Coba kerjakan soal literasi dengan target 1 menit per soal untuk simulasi asli.</p>
+                        <h6 class="text-muted mb-1 text-uppercase small">Sesi UTS Aktif</h6>
+                        <h3 class="fw-bold mb-0">{{ $examsCount }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stats-icon bg-info text-white rounded-3 p-3 me-3 d-flex align-items-center justify-content-center" style="width:54px; height:54px;">
+                        <i class="bi bi-people-fill fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1 text-uppercase small">Total Mahasiswa</h6>
+                        <h3 class="fw-bold mb-0">{{ $studentsCount }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stats-icon bg-warning text-white rounded-3 p-3 me-3 d-flex align-items-center justify-content-center" style="width:54px; height:54px;">
+                        <i class="bi bi-pencil-square fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1 text-uppercase small">Pending Koreksi</h6>
+                        <h3 class="fw-bold mb-0">{{ $pendingGradingCount }}</h3>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Exam List -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm p-4">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
-                    <h4 class="fw-bold mb-0">Daftar Materi & Ujian</h4>
-                    <div class="btn-group p-1 bg-light rounded-pill shadow-sm" style="font-size: 0.85rem;">
-                        <button class="btn btn-sm rounded-pill px-3 {{ $filterCategory == 'All' ? 'btn-primary shadow-sm' : '' }}" wire:click="setFilter('All')">Semua</button>
-                        <button class="btn btn-sm rounded-pill px-3 {{ $filterCategory == 'TPS' ? 'btn-primary shadow-sm' : '' }}" wire:click="setFilter('TPS')">TPS</button>
-                        <button class="btn btn-sm rounded-pill px-3 {{ $filterCategory == 'Literasi' ? 'btn-primary shadow-sm' : '' }}" wire:click="setFilter('Literasi')">Literasi</button>
-                        <button class="btn btn-sm rounded-pill px-3 {{ $filterCategory == 'FULL' ? 'btn-primary shadow-sm' : '' }}" wire:click="setFilter('FULL')">Full Simulation</button>
-                    </div>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table table-hover table-lg">
-                        <thead>
-                            <tr class="text-muted small text-uppercase">
-                                <th class="border-0">Nama Tryout</th>
-                                <th class="border-0 text-center">Kategori</th>
-                                <th class="border-0 text-center">Waktu</th>
-                                <th class="border-0 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($activeExams as $exam)
-                            <tr class="align-middle">
-                                <td class="py-3 border-0">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-md bg-light-primary text-primary me-3">
-                                            <i class="bi bi-journal-text fs-5"></i>
-                                        </div>
-                                        <span class="fw-bold text-gray-800">{{ $exam->title }}</span>
-                                    </div>
-                                </td>
-                                <td class="border-0 text-center">
-                                    <span class="badge bg-light-info text-info px-3">{{ $exam->category }}</span>
-                                </td>
-                                <td class="border-0 text-center text-muted small">{{ $exam->duration }} Menit</td>
-                                <td class="border-0 text-center">
-                                    @if($exam->user_status == 'NOT_STARTED')
-                                        <a href="/exam/{{ $exam->id }}" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm" wire:navigate>Mulai</a>
-                                    @elseif($exam->user_status == 'IN_PROGRESS')
-                                        <a href="/exam/{{ $exam->id }}?subject={{ $exam->last_subject_id }}" class="btn btn-warning btn-sm rounded-pill px-4 shadow-sm" wire:navigate>Lanjutkan</a>
-                                    @elseif($exam->user_status == 'FINISHED')
-                                        <div class="d-flex gap-1 justify-content-center">
-                                            <a href="/rationalization/{{ $exam->result_id }}" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm" wire:navigate>Hasil</a>
-                                            <a href="/certificate/{{ $exam->result_id }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm">
-                                                <i class="bi bi-printer"></i>
-                                            </a>
-                                        </div>
+    <!-- Admin Quick Menu & Active Exams -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100" style="overflow: visible !important;">
+                <div class="card-header bg-transparent d-flex flex-wrap justify-content-between align-items-center py-3 gap-2" style="overflow: visible !important; position: relative; z-index: 20;">
+                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Daftar Sesi UTS Terbuka</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Custom Smooth Animated Dropdown for Admin Sesi UTS -->
+                        <div class="position-relative" x-data="{ open: false }" @click.outside="open = false">
+                            <button type="button" @click="open = !open" 
+                                    class="btn btn-sm btn-light border-primary fw-bold d-flex align-items-center gap-2 rounded-3 px-3 py-2 shadow-sm text-dark">
+                                <i class="bi bi-funnel-fill text-primary"></i>
+                                <span>
+                                    @if($selectedCourseId === 'all')
+                                        Semua Mata Kuliah
+                                    @else
+                                        @php $ac = $coursesList->firstWhere('id', $selectedCourseId); @endphp
+                                        {{ $ac ? ($ac->code . ' - ' . $ac->name) : 'Semua Mata Kuliah' }}
                                     @endif
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="4" class="text-center py-5 text-muted small">Belum ada tryout yang tersedia untuk filter ini.</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                                </span>
+                                <i class="bi bi-chevron-down ms-1 small text-muted" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s ease;"></i>
+                            </button>
+                            <div x-show="open" 
+                                 x-transition:enter="transition ease-out duration-200"
+                                 x-transition:enter-start="opacity-0 scale-95 -translate-y-2"
+                                 x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                                 x-transition:leave="transition ease-in duration-150"
+                                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                                 x-transition:leave-end="opacity-0 scale-95 -translate-y-2"
+                                 class="position-absolute end-0 mt-2 bg-white rounded-4 shadow-lg border p-2"
+                                 style="min-width: 270px; max-height: 320px; overflow-y: auto; z-index: 9999; display: none;">
+                                <button type="button" class="dropdown-item rounded-3 py-2 px-3 fw-bold d-flex align-items-center justify-content-between mb-1 {{ $selectedCourseId === 'all' ? 'bg-primary text-white' : 'text-dark' }}"
+                                        @click="$wire.set('selectedCourseId', 'all'); open = false;">
+                                    <span>📚 Semua Mata Kuliah</span>
+                                    @if($selectedCourseId === 'all') <i class="bi bi-check-lg ms-2"></i> @endif
+                                </button>
+                                <div class="dropdown-divider my-1 opacity-25"></div>
+                                @foreach($coursesList as $c)
+                                <button type="button" class="dropdown-item rounded-3 py-2 px-3 d-flex align-items-center justify-content-between mb-1 {{ $selectedCourseId == $c->id ? 'bg-primary text-white fw-bold' : 'text-dark' }}"
+                                        @click="$wire.set('selectedCourseId', '{{ $c->id }}'); open = false;">
+                                    <div class="text-truncate me-2">
+                                        <span class="badge {{ $selectedCourseId == $c->id ? 'bg-white text-primary' : 'bg-secondary' }} me-2 font-monospace">{{ $c->code }}</span>
+                                        <span>{{ $c->name }}</span>
+                                    </div>
+                                    @if($selectedCourseId == $c->id) <i class="bi bi-check-lg ms-2"></i> @endif
+                                </button>
+                                @endforeach
+                            </div>
+                        </div>
+                        <a href="/admin/exams" class="btn btn-sm btn-outline-primary fw-bold" wire:navigate>Kelola Semua UTS</a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Mata Kuliah / Judul UTS</th>
+                                    <th>Token</th>
+                                    <th>Jumlah Soal</th>
+                                    <th>Peserta</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($latestExams as $ex)
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-primary">{{ $ex->course->name ?? 'Mata Kuliah' }}</div>
+                                        <small class="text-muted">{{ $ex->title }}</small>
+                                    </td>
+                                    <td><span class="badge bg-secondary font-monospace fs-6">{{ $ex->token }}</span></td>
+                                    <td><span class="badge bg-info text-dark">{{ $ex->questions_count }} Soal</span></td>
+                                    <td><span class="badge bg-primary">{{ $ex->results_count }} Mahasiswa</span></td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/admin/generator?exam_id={{ $ex->id }}" class="btn btn-outline-primary" wire:navigate title="Edit Soal"><i class="bi bi-plus-circle"></i> Soal</a>
+                                            <a href="/admin/grading/{{ $ex->id }}" class="btn btn-outline-warning" wire:navigate title="Koreksi Essay"><i class="bi bi-pencil-square"></i> Koreksi</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">Belum ada jadwal UTS yang dibuat untuk Mata Kuliah ini.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent py-3">
+                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-lightning-charge-fill me-2 text-warning"></i>Aksi Cepat Dosen / Admin</h5>
+                </div>
+                <div class="card-body d-flex flex-column gap-2">
+                    <a href="/admin/exams" class="btn btn-outline-primary text-start p-3 rounded-3" wire:navigate>
+                        <i class="bi bi-calendar-plus-fill me-2 fs-5"></i>
+                        <span class="fw-bold">Buat Sesi UTS Baru</span>
+                        <div class="small text-muted ps-4">Atur durasi, token, dan jadwal UTS</div>
+                    </a>
+                    <a href="/admin/generator" class="btn btn-outline-success text-start p-3 rounded-3" wire:navigate>
+                        <i class="bi bi-robot me-2 fs-5"></i>
+                        <span class="fw-bold">Input & Generator Soal AI</span>
+                        <div class="small text-muted ps-4">Input Pilihan Ganda, Essay, & Generate AI</div>
+                    </a>
+                    <a href="/admin/courses" class="btn btn-outline-info text-start p-3 rounded-3 text-dark" wire:navigate>
+                        <i class="bi bi-journal-plus me-2 fs-5"></i>
+                        <span class="fw-bold text-dark">Kelola Data Mata Kuliah</span>
+                        <div class="small text-muted ps-4">Tambah Kode MK, SKS, & Semester</div>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('livewire:navigated', () => {
-            const ctx = document.getElementById('scoreChart');
-            if (!ctx) return;
+    <!-- Rekapitulasi Nilai Mahasiswa & PDF Export -->
+    <div class="row mb-4" style="position: relative; z-index: 20;">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="overflow: visible !important;">
+                <div class="card-header bg-transparent py-3" style="overflow: visible !important; position: relative; z-index: 20;">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <div>
+                            <h5 class="card-title mb-0 fw-bold text-dark">
+                                <i class="bi bi-file-earmark-bar-graph-fill text-success me-2"></i>Rekapitulasi Nilai UTS Mahasiswa
+                            </h5>
+                            <small class="text-muted">Hasil otomatis nilai Pilihan Ganda & Essay dari setiap Mahasiswa</small>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <!-- Search Input -->
+                            <div class="input-group input-group-sm" style="width: 200px;">
+                                <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Cari Nama / NIM..." wire:model.live="searchMahasiswa">
+                            </div>
 
-            // Cleanup existing chart instance if exists to prevent bug
-            if (window.myDashboardChart) {
-                window.myDashboardChart.destroy();
-            }
+                            <!-- Custom Smooth Animated Dropdown for Mata Kuliah Rekap -->
+                            <div class="position-relative" x-data="{ open: false }" @click.outside="open = false">
+                                <button type="button" @click="open = !open" 
+                                        class="btn btn-sm btn-light border-primary fw-bold d-flex align-items-center gap-2 rounded-3 px-3 py-1.5 shadow-sm text-dark">
+                                    <i class="bi bi-journal-bookmark-fill text-primary"></i>
+                                    <span>
+                                        @if($selectedCourseId === 'all')
+                                            Semua Mata Kuliah
+                                        @else
+                                            @php $ac = $coursesList->firstWhere('id', $selectedCourseId); @endphp
+                                            {{ $ac ? ($ac->code . ' - ' . $ac->name) : 'Semua Mata Kuliah' }}
+                                        @endif
+                                    </span>
+                                    <i class="bi bi-chevron-down ms-1 small text-muted" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s ease;"></i>
+                                </button>
+                                <div x-show="open" 
+                                     x-transition:enter="transition ease-out duration-200"
+                                     x-transition:enter-start="opacity-0 scale-95 -translate-y-2"
+                                     x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                                     x-transition:leave="transition ease-in duration-150"
+                                     x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                                     x-transition:leave-end="opacity-0 scale-95 -translate-y-2"
+                                     class="position-absolute end-0 mt-2 bg-white rounded-4 shadow-lg border p-2"
+                                     style="min-width: 270px; max-height: 320px; overflow-y: auto; z-index: 9999; display: none;">
+                                    <button type="button" class="dropdown-item rounded-3 py-2 px-3 fw-bold d-flex align-items-center justify-content-between mb-1 {{ $selectedCourseId === 'all' ? 'bg-primary text-white' : 'text-dark' }}"
+                                            @click="$wire.set('selectedCourseId', 'all'); open = false;">
+                                        <span>📚 Semua Mata Kuliah</span>
+                                        @if($selectedCourseId === 'all') <i class="bi bi-check-lg ms-2"></i> @endif
+                                    </button>
+                                    <div class="dropdown-divider my-1 opacity-25"></div>
+                                    @foreach($coursesList as $c)
+                                    <button type="button" class="dropdown-item rounded-3 py-2 px-3 d-flex align-items-center justify-content-between mb-1 {{ $selectedCourseId == $c->id ? 'bg-primary text-white fw-bold' : 'text-dark' }}"
+                                            @click="$wire.set('selectedCourseId', '{{ $c->id }}'); open = false;">
+                                        <div class="text-truncate me-2">
+                                            <span class="badge {{ $selectedCourseId == $c->id ? 'bg-white text-primary' : 'bg-secondary' }} me-2 font-monospace">{{ $c->code }}</span>
+                                            <span>{{ $c->name }}</span>
+                                        </div>
+                                        @if($selectedCourseId == $c->id) <i class="bi bi-check-lg ms-2"></i> @endif
+                                    </button>
+                                    @endforeach
+                                </div>
+                            </div>
 
-            const isDark = localStorage.getItem('theme') === 'dark';
-            const colors = {
-                primary: '#6366f1',
-                text: isDark ? '#94a3b8' : '#64748b',
-                grid: isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(0,0,0,0.05)',
-                bg: isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)'
-            };
+                            <!-- Filter Sesi UTS -->
+                            <select class="form-select form-select-sm" wire:model.live="selectedExamId" style="width: 180px;">
+                                <option value="all">Semua Sesi UTS</option>
+                                @foreach($latestExams as $ex)
+                                    <option value="{{ $ex->id }}">{{ $ex->course->code ?? '' }} - {{ Str::limit($ex->title, 20) }}</option>
+                                @endforeach
+                            </select>
 
-            window.myDashboardChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: @json($scoreDates),
-                    datasets: [{
-                        label: 'Skor IRT',
-                        data: @json($scoreHistory),
-                        fill: true,
-                        borderColor: colors.primary,
-                        backgroundColor: colors.bg,
-                        tension: 0.4,
-                        pointRadius: 5,
-                        pointHoverRadius: 8,
-                        pointBackgroundColor: colors.primary,
-                        pointBorderColor: isDark ? '#1e1e2d' : '#fff',
-                        pointBorderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            backgroundColor: isDark ? '#1e1e2d' : '#fff',
-                            titleColor: isDark ? '#fff' : '#1e293b',
-                            bodyColor: isDark ? '#cbd5e1' : '#475569',
-                            borderColor: colors.grid,
-                            borderWidth: 1,
-                            padding: 12,
-                            displayColors: false,
-                            callbacks: {
-                                label: (context) => ` Skor: ${context.parsed.y.toFixed(2)} IP`
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: colors.grid },
-                            ticks: { 
-                                color: colors.text,
-                                font: { size: 10, weight: '500' }
-                            }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { 
-                                color: colors.text,
-                                font: { size: 10, weight: '500' }
-                            }
-                        }
-                    }
-                }
-            });
-        });
-    </script>
+                            <!-- Export PDF Button -->
+                            <a href="/admin/reports/pdf?exam_id={{ $selectedExamId !== 'all' ? $selectedExamId : '' }}" target="_blank" class="btn btn-sm btn-danger fw-bold">
+                                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Ekspor Laporan PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-3" style="width: 50px;">No</th>
+                                    <th>Mahasiswa (NIM)</th>
+                                    <th>Prodi / Kelas</th>
+                                    <th>Mata Kuliah & Sesi UTS</th>
+                                    <th class="text-center">Nilai PG</th>
+                                    <th class="text-center">Nilai Essay</th>
+                                    <th class="text-center">Total Nilai</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-end pe-3">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($studentResults as $index => $res)
+                                @php
+                                    $score = $res->score;
+                                    $gradeBadge = 'bg-success';
+                                    if($score < 60) $gradeBadge = 'bg-danger';
+                                    elseif($score < 75) $gradeBadge = 'bg-warning text-dark';
+                                @endphp
+                                <tr>
+                                    <td class="ps-3 text-muted fw-bold">{{ $index + 1 }}</td>
+                                    <td>
+                                        <div class="fw-bold text-dark">{{ $res->user->name }}</div>
+                                        <small class="text-primary font-monospace"><i class="bi bi-card-heading me-1"></i>NIM: {{ $res->user->nim ?? '-' }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">{{ $res->user->prodi ?? '-' }}</span>
+                                        <div class="small text-muted">Kelas: {{ $res->user->kelas ?? '-' }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">{{ $res->exam->course->name ?? 'Mata Kuliah' }}</div>
+                                        <small class="text-muted">{{ $res->exam->title }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary font-monospace fs-6">{{ number_format($res->mc_score, 1) }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info text-dark font-monospace fs-6">{{ number_format($res->essay_score, 1) }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge {{ $gradeBadge }} fs-6 px-3 py-2 fw-bold font-monospace">
+                                            {{ number_format($res->score, 1) }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        @if($res->is_graded)
+                                            <span class="badge bg-success-subtle text-success border border-success px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Selesai</span>
+                                        @else
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-2 py-1"><i class="bi bi-clock-history me-1"></i>Koreksi Essay</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <a href="/admin/grading/{{ $res->exam_id }}" class="btn btn-sm btn-outline-warning fw-bold" wire:navigate title="Koreksi Essay & Nilai">
+                                            <i class="bi bi-pencil-square me-1"></i> Koreksi
+                                        </a>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="9" class="text-center py-4 text-muted">
+                                        <i class="bi bi-inbox fs-3 d-block mb-1"></i>
+                                        Belum ada data nilai hasil ujian mahasiswa untuk sesi UTS yang dipilih.
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @else
+    <!-- Mahasiswa Dashboard -->
+    <!-- Filter Mata Kuliah Bar (Smooth Animated Dropdown) -->
+    <div class="row mb-4" style="position: relative; z-index: 30;">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm p-3 bg-white rounded-4" style="overflow: visible !important; position: relative; z-index: 30;">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-funnel-fill text-primary fs-4"></i>
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark">Filter Berdasarkan Mata Kuliah</h6>
+                            <small class="text-muted">Pisahkan tampilan Jadwal & Riwayat UTS per Mata Kuliah</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Custom Smooth Dropdown -->
+                    <div class="position-relative" x-data="{ open: false }" @click.outside="open = false">
+                        <button type="button" @click="open = !open" 
+                                class="btn btn-light border-primary fw-bold d-flex align-items-center gap-2 rounded-3 px-4 py-2 shadow-sm text-dark">
+                            <i class="bi bi-journal-bookmark-fill text-primary"></i>
+                            <span>
+                                @if($selectedCourseId === 'all')
+                                    ✨ Semua Mata Kuliah
+                                @else
+                                    @php $ac = $coursesList->firstWhere('id', $selectedCourseId); @endphp
+                                    {{ $ac ? ($ac->code . ' - ' . $ac->name) : 'Semua Mata Kuliah' }}
+                                @endif
+                            </span>
+                            <i class="bi bi-chevron-down ms-2 small text-muted" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s ease;"></i>
+                        </button>
+                        <div x-show="open" 
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 scale-95 -translate-y-2"
+                             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 scale-95 -translate-y-2"
+                             class="position-absolute end-0 mt-2 bg-white rounded-4 shadow-lg border p-2"
+                             style="min-width: 280px; max-height: 320px; overflow-y: auto; z-index: 9999; display: none;">
+                            <button type="button" class="dropdown-item rounded-3 py-2.5 px-3 fw-bold d-flex align-items-center justify-content-between mb-1 {{ $selectedCourseId === 'all' ? 'bg-primary text-white' : 'text-dark' }}"
+                                    @click="$wire.set('selectedCourseId', 'all'); open = false;">
+                                <span>📚 Semua Mata Kuliah</span>
+                                @if($selectedCourseId === 'all') <i class="bi bi-check-lg ms-2"></i> @endif
+                            </button>
+                            <div class="dropdown-divider my-1 opacity-25"></div>
+                            @foreach($coursesList as $c)
+                            <button type="button" class="dropdown-item rounded-3 py-2.5 px-3 d-flex align-items-center justify-content-between mb-1 {{ $selectedCourseId == $c->id ? 'bg-primary text-white fw-bold' : 'text-dark' }}"
+                                    @click="$wire.set('selectedCourseId', '{{ $c->id }}'); open = false;">
+                                <div class="text-truncate me-2">
+                                    <span class="badge {{ $selectedCourseId == $c->id ? 'bg-white text-primary' : 'bg-secondary' }} me-2 font-monospace">{{ $c->code }}</span>
+                                    <span>{{ $c->name }}</span>
+                                </div>
+                                @if($selectedCourseId == $c->id) <i class="bi bi-check-lg ms-2"></i> @endif
+                            </button>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Active UTS Section -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-journal-text me-2 text-primary"></i>Jadwal UTS Aktif Hari Ini</h5>
+                    @if($selectedCourseId !== 'all')
+                        <span class="badge bg-primary fs-6"><i class="bi bi-filter me-1"></i>Filter Aktif</span>
+                    @endif
+                </div>
+                <div class="card-body">
+                    @forelse($activeExams as $exam)
+                    <div class="border rounded-3 p-4 mb-3 hover-shadow transition" style="border-left: 5px solid #435ebe !important;">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                            <div>
+                                <span class="badge bg-primary mb-1">{{ $exam->course->code ?? 'MK' }} - {{ $exam->course->name ?? 'Mata Kuliah' }}</span>
+                                <h4 class="fw-bold mb-1">{{ $exam->title }}</h4>
+                                <p class="text-muted small mb-0"><i class="bi bi-person-circle me-1"></i> Dosen: {{ $exam->lecturer->name ?? 'Dosen Pengampu' }}</p>
+                            </div>
+                            <span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="bi bi-clock-history me-1"></i> {{ $exam->duration_minutes }} Menit</span>
+                        </div>
+                        <p class="text-secondary small mb-3">{{ $exam->description ?? 'Tidak ada deskripsi tambahan.' }}</p>
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top">
+                            <span class="small text-muted"><i class="bi bi-card-checklist me-1"></i> Total {{ $exam->questions_count }} Soal (PG & Essay)</span>
+                            <a href="/exam/{{ $exam->id }}" class="btn btn-primary fw-bold px-4 rounded-pill">
+                                <i class="bi bi-play-circle-fill me-1"></i> Kerjakan UTS
+                            </a>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="text-center py-5">
+                        <i class="bi bi-calendar2-check text-muted display-4"></i>
+                        <h5 class="fw-bold mt-3 text-secondary">Tidak ada UTS yang sedang aktif secara terbuka.</h5>
+                        <p class="text-muted small">Jika Anda memiliki token UTS dari dosen, gunakan kotak <strong>"Masukkan Token UTS"</strong> di bagian atas.</p>
+                    </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
+        <!-- Student History & Results (NO NUMERIC SCORES SHOWN TO STUDENT) -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent py-3">
+                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-award-fill me-2 text-warning"></i>Riwayat UTS Saya</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        @forelse($myResults as $res)
+                        <li class="list-group-item p-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-primary-subtle text-primary fw-bold mb-1">{{ $res->exam->course->code ?? 'MK' }}</span>
+                                    <h6 class="fw-bold mb-0 text-dark">{{ $res->exam->course->name ?? 'Mata Kuliah' }}</h6>
+                                    <small class="text-muted">{{ $res->exam->title }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-success-subtle text-success border border-success px-3 py-2 fw-bold small">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Selesai
+                                    </span>
+                                </div>
+                            </div>
+                        </li>
+                        @empty
+                        <li class="list-group-item text-center py-4 text-muted">
+                            Belum ada UTS yang diselesaikan.
+                        </li>
+                        @endforelse
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
+
+<style>
+    .rotate-180 { transform: rotate(180deg); }
+</style>

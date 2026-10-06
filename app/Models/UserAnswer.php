@@ -2,15 +2,35 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class UserAnswer extends Model
 {
-    protected $fillable = ['result_id', 'question_id', 'option_id', 'remaining_time', 'score_obtained', 'is_doubtful'];
+    use HasFactory;
 
-    public function result()
+    protected $fillable = [
+        'user_id',
+        'exam_id',
+        'question_id',
+        'selected_option_id',
+        'essay_answer',
+        'score_given',
+        'is_doubtful',
+    ];
+
+    protected $casts = [
+        'is_doubtful' => 'boolean',
+    ];
+
+    public function user()
     {
-        return $this->belongsTo(Result::class);
+        return $this->belongsTo(User::class);
+    }
+
+    public function exam()
+    {
+        return $this->belongsTo(Exam::class);
     }
 
     public function question()
@@ -18,8 +38,8 @@ class UserAnswer extends Model
         return $this->belongsTo(Question::class);
     }
 
-    public function option()
+    public function selectedOption()
     {
-        return $this->belongsTo(Option::class);
+        return $this->belongsTo(Option::class, 'selected_option_id');
     }
 }

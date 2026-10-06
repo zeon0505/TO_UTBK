@@ -1,526 +1,440 @@
-<div x-data="{ 
-    sectionTimeLeft: 0,
-    questionTimeLeft: 0,
-    sectionTimer: null,
-    questionTimer: null,
-    violationCount: 0,
-    maxViolations: 3,
-    warningPlayed: false,
-    showScratchpad: false,
-    isDrawing: false,
-    ctx: null,
-    playSFX(type) {
-        setTimeout(() => {
-            const sounds = {
-                start: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
-                click: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3',
-                warning: 'https://assets.mixkit.co/active_storage/sfx/1003/1003-preview.mp3',
-                finish: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'
-            };
-            try {
-                const audio = new Audio(sounds[type]);
-                audio.play().catch(() => {});
-            } catch (e) {}
-        }, 0);
-    },
-    initCanvas() {
-        const canvas = this.$refs.scratchCanvas;
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        this.ctx = canvas.getContext('2d');
-        this.ctx.lineWidth = 2;
-        this.ctx.lineCap = 'round';
-        this.ctx.strokeStyle = '#2d3436';
-    },
-    startDrawing(e) {
-        this.isDrawing = true;
-        this.draw(e);
-    },
-    stopDrawing() {
-        this.isDrawing = false;
-        this.ctx.beginPath();
-    },
-    draw(e) {
-        if (!this.isDrawing) return;
-        const rect = this.$refs.scratchCanvas.getBoundingClientRect();
-        const x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
-        const y = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
-        this.ctx.lineTo(x, y);
-        this.ctx.stroke();
-        this.ctx.beginPath();
-        this.ctx.moveTo(x, y);
-    },
-    clearCanvas() {
-        this.ctx.clearRect(0, 0, this.$refs.scratchCanvas.width, this.$refs.scratchCanvas.height);
-    },
-    startSectionTimer(duration) {
-        this.sectionTimeLeft = duration;
-        if (this.sectionTimer) clearInterval(this.sectionTimer);
-        this.sectionTimer = setInterval(() => {
-            if (this.sectionTimeLeft > 0) {
-                this.sectionTimeLeft--;
-            } else {
-                clearInterval(this.sectionTimer);
-                clearInterval(this.questionTimer);
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Waktu Bab Habis!',
-                    text: 'Sistem akan memindahkan Anda ke sub-tes berikutnya.',
-                    timer: 3000,
-                    showConfirmButton: false
-                }).then(() => {
-                    $wire.moveToNextSection();
-                });
-            }
-        }, 1000);
-    },
-    startQuestionTimer(duration) {
-        this.questionTimeLeft = duration;
-        if (this.questionTimer) clearInterval(this.questionTimer);
-        this.questionTimer = setInterval(() => {
-            if (this.questionTimeLeft > 1) {
-                this.questionTimeLeft--;
-            } else {
-                clearInterval(this.questionTimer);
-                this.playSFX('warning');
-                $wire.nextQuestion();
-            }
-        }, 1000);
-    },
-    initAntiCheat() {
-        // Anti-Double Tab
-        const channel = new BroadcastChannel('exam_channel');
-        // Violation Alarm & Pop-Up (Metode Aktif & Efek Jera)
-        document.addEventListener('livewire:init', () => {
-            // Anti-Drag
-            document.addEventListener('dragstart', (e) => e.preventDefault());
-            document.addEventListener('drop', (e) => e.preventDefault());
-
-            // Anti-Screenshot (Blur when focus is lost)
-            const examContent = document.getElementById('exam-content-area');
-            const blurWarning = document.getElementById('blur-warning');
-            
-            window.addEventListener('blur', () => {
-                if(examContent) examContent.classList.add('content-blur');
-                if(blurWarning) {
-                    blurWarning.classList.remove('d-none');
-                    blurWarning.classList.add('d-flex');
-                }
-            });
-            
-            window.addEventListener('focus', () => {
-                if(examContent) examContent.classList.remove('content-blur');
-                if(blurWarning) {
-                    blurWarning.classList.remove('d-flex');
-                    blurWarning.classList.add('d-none');
-                }
-            });
-        });
-        
-        window.addEventListener('blur', () => {
-            // Mainkan suara alarm
-            this.$dispatch('play-sfx', { type: 'error' });
-            
-            // Catat pelanggaran ke database
-            @this.call('recordViolation');
-
-            // Tampilkan Pop-up Peringatan Keras
-            Swal.fire({
-                title: 'PERINGATAN KERAS!',
-                text: 'Dilarang meninggalkan halaman ujian! Pelanggaran Anda telah dicatat oleh sistem.',
-                icon: 'warning',
-                confirmButtonText: 'SAYA MENGERTI',
-                confirmButtonColor: '#d33',
-                allowOutsideClick: false,
-                backdrop: `rgba(255,0,0,0.4)`
-            });
-        });
-        channel.postMessage({ type: 'NEW_TAB', examId: '{{ $exam->id }}' });
-        channel.onmessage = (e) => {
-            if (e.data.type === 'NEW_TAB' && e.data.examId === '{{ $exam->id }}') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Akses Ditolak!',
-                    text: 'Anda sudah membuka halaman ujian ini di tab lain. Silakan gunakan satu tab saja.',
-                    confirmButtonText: 'Tutup Tab Ini'
-                }).then(() => {
-                    window.close();
-                });
-            }
-        };
-
-        // Hapus listener lama jika ada (mencegah duplikasi)
-        if (window.cheatHandler) {
-            window.removeEventListener('blur', window.cheatHandler);
-        }
-
-        // Simpan handler ke variabel global agar bisa dihapus nanti
-        window.cheatHandler = () => {
-            if (this.showInstructions || this.isFinished) return;
-            
-            this.violationCount++;
-            this.playSFX('warning');
-
-            if (this.violationCount >= this.maxViolations) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Pelanggaran Kritikal!',
-                    text: 'Anda terlalu sering meninggalkan halaman. Ujian dikumpulkan otomatis.',
-                    confirmButtonText: 'OK'
-                }).then(() => {
-                    this.stopAntiCheat();
-                    $wire.finishExam();
-                });
-            } else {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Peringatan Keamanan',
-                    html: 'Dilarang pindah tab atau meninggalkan halaman ujian!<br>Pelanggaran dicatat: <b>' + this.violationCount + '/' + this.maxViolations + '</b>',
-                    confirmButtonText: 'Saya Mengerti',
-                    confirmButtonColor: '#435ebe',
-                });
-            }
-        };
-
-        window.addEventListener('blur', window.cheatHandler);
-        
-        // Disable Right Click & Copy
-        document.oncontextmenu = () => !this.isFinished;
-        document.oncopy = () => !this.isFinished;
-    },
-    stopAntiCheat() {
-        if (window.cheatHandler) {
-            window.removeEventListener('blur', window.cheatHandler);
-            window.cheatHandler = null;
-        }
-        document.oncontextmenu = null;
-        document.oncopy = null;
-    },
-    confirmFinish() {
-        Swal.fire({
-            title: 'Yakin ingin selesai?',
-            text: "Pastikan semua jawaban sudah terisi. Anda tidak dapat kembali setelah mengumpulkan!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#435ebe',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Ya, Kumpulkan Sekarang!',
-            cancelButtonText: 'Kembali'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                this.stopAntiCheat();
-                $wire.finishExam();
-            }
-        });
-    },
-    confirmNextSection() {
-        Swal.fire({
-            title: 'Lanjut Sub-Tes?',
-            text: "Waktu sub-tes ini belum habis, tapi Anda tidak bisa kembali ke bab ini jika sudah berpindah!",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#435ebe',
-            confirmButtonText: 'Ya, Lanjut Berikutnya',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $wire.moveToNextSection();
-            }
-        });
-    }
-}
-" 
-x-on:start-section-timer.window="startSectionTimer($event.detail.duration); initAntiCheat()"
-x-on:question-loaded.window="startQuestionTimer($event.detail.duration)"
-x-on:play-sfx.window="playSFX($event.detail.type)"
-class="container-fluid no-select">
-
-<style>
-    .no-select {
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-    }
-</style>
-
-    @if($showInstructions)
-    <div class="container-fluid py-4" id="exam-container">
-    <div class="row">
-        <!-- Main Exam Area -->
-        <div class="col-lg-8">
-            <div class="card shadow-lg border-0 rounded-4" id="exam-content-area">
-                <div class="card-body p-5">
-                    <div class="stats-icon purple mx-auto mb-4" style="width: 80px; height: 80px;">
-                        <i class="bi bi-info-circle fs-1"></i>
+<div>
+    <!-- ══════════════ TOKEN MODAL ══════════════ -->
+    @if($showTokenModal)
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-shield-lock-fill me-2"></i>Verifikasi Token UTS</h5>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="text-center mb-3">
+                        <span class="badge bg-primary-subtle text-primary fw-bold fs-6 mb-2">{{ $exam->course->code ?? 'MK' }} - {{ $exam->course->name ?? 'Mata Kuliah' }}</span>
+                        <h4 class="fw-bold mb-1 text-dark">{{ $exam->title }}</h4>
+                        <p class="text-muted small">Durasi: <strong>{{ $exam->duration_minutes }} Menit</strong> | Dosen: <strong>{{ $exam->lecturer->name ?? 'Dosen Pengampu' }}</strong></p>
                     </div>
-                    <h2 class="fw-bold mb-3">Instruksi Simulasi UTBK</h2>
-                    <p class="text-muted mb-4">Anda akan mengerjakan <strong>{{ $exam->title }}</strong>. Silakan baca aturan pengerjaan di bawah ini:</p>
-                    
-                    <div class="row text-start mb-5 bg-light p-4 rounded-4">
-                        <div class="col-md-6">
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Pengerjaan per Soal.</li>
-                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Waktu berjalan <b>60 Detik</b> per Soal.</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Akan <b>otomatis pindah</b> jika waktu habis.</li>
-                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Skor akhir dihitung otomatis.</li>
-                            </ul>
-                        </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-bold text-dark text-uppercase small">Kode Token Akses UTS</label>
+                        <input type="text" class="form-control form-control-lg text-center font-monospace fw-bold text-uppercase border-primary"
+                               wire:model="tokenInput" placeholder="Contoh: UTS123" autofocus>
+                        @if($tokenError)
+                            <small class="text-danger mt-1 d-block fw-semibold">{{ $tokenError }}</small>
+                        @endif
                     </div>
-
-                    <div class="alert alert-info py-3 rounded-4 mb-4">
-                        Materi Uji: <strong>{{ $exam->subTests[0]->title }}</strong>
-                    </div>
-
-                    <button class="btn btn-primary btn-lg px-5 rounded-pill shadow-lg" wire:click="startExam">
-                        Mulai Simulasi Sekarang
+                    <button type="button" class="btn btn-primary btn-lg w-100 fw-bold rounded-3 shadow-sm" wire:click="verifyToken">
+                        <i class="bi bi-play-circle-fill me-2"></i>Mulai Kerjakan UTS Sekarang
                     </button>
+                    <div class="text-center mt-3">
+                        <a href="/dashboard" class="text-muted text-decoration-none small"><i class="bi bi-arrow-left me-1"></i> Batal &amp; Kembali ke Dashboard</a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- ══════════════ FINISHED VIEW ══════════════ -->
     @elseif($isFinished)
-    <div class="row justify-content-center py-5 text-center">
-        <div class="col-md-6">
-            <div class="card shadow-lg border-0 p-5 rounded-5">
-                <div class="stats-icon green mx-auto mb-4" style="width: 100px; height: 100px;">
-                    <i class="bi bi-check-all fs-1"></i>
-                </div>
-                <h1 class="fw-bold">Selamat!</h1>
-                <p class="text-muted fs-5">Anda telah menyelesaikan seluruh rangkaian simulasi.</p>
-                
-                <div class="my-4">
-                    <h4 class="text-muted mb-1">Skor Akhir Anda</h4>
-                    <h1 class="display-3 text-primary fw-extrabold">{{ number_format($result->total_score, 2) }}</h1>
-                </div>
-
-                <div class="d-flex gap-2 justify-content-center">
-                    <a href="/tryouts" class="btn btn-secondary rounded-pill px-4" @click="stopAntiCheat()" wire:navigate>Lihat Riwayat</a>
-                    <a href="/dashboard" class="btn btn-primary rounded-pill px-4" @click="stopAntiCheat()" wire:navigate>Ke Dashboard</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    @else
-    <!-- Exam Layout -->
-    <div class="page-heading">
-        <div class="row align-items-center">
-            <div class="col-md-4">
-                <h4 class="mb-0 fw-bold">{{ $exam->title }}</h4>
-                <p class="text-muted small mb-0">{{ $currentSubTest->title }}</p>
-            </div>
-            <div class="col-md-4 text-center d-flex justify-content-center">
-                <div class="d-flex align-items-center bg-white shadow-sm rounded-pill p-1 border">
-                    <!-- Timer Bab -->
-                    <div class="px-3 border-end d-flex align-items-center">
-                        <div class="me-2 text-start">
-                            <div class="text-muted fw-bold" style="font-size: 0.55rem; letter-spacing: 0.5px;">SISA WAKTU BAB</div>
-                            <div class="fs-5 fw-extrabold text-primary" style="font-family: 'Courier New', monospace; line-height: 1;">
-                                <span x-text="Math.floor(sectionTimeLeft / 60).toString().padStart(2, '0')"></span>:<span x-text="(sectionTimeLeft % 60).toString().padStart(2, '0')"></span>
-                            </div>
-                        </div>
-                        <i class="bi bi-clock-history fs-4 text-primary opacity-50"></i>
-                    </div>
-                    <!-- Timer Soal -->
-                    <div class="px-3 d-flex align-items-center">
-                        <i class="bi bi-hourglass-split fs-4 text-warning opacity-75 me-2"></i>
-                        <div class="text-start">
-                            <div class="text-muted fw-bold" style="font-size: 0.55rem; letter-spacing: 0.5px;">WAKTU SOAL</div>
-                            <div class="fs-5 fw-extrabold text-warning" style="font-family: 'Courier New', monospace; line-height: 1;">
-                                <span x-text="questionTimeLeft"></span><span style="font-size: 0.7rem">s</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 text-end">
-                @if($this->currentSubTestIndex < count($this->exam->subTests) - 1)
-                    <button @click="confirmNextSection()" class="btn btn-primary rounded-pill px-4 shadow-sm border-0" style="background: linear-gradient(45deg, #435ebe, #6c8ef2);">
-                        Bab Berikutnya <i class="bi bi-arrow-right ms-1"></i>
-                    </button>
+    <div class="row justify-content-center py-5">
+        <div class="col-md-6 text-center">
+            <div class="card border-0 shadow-lg p-5 rounded-4">
+                @if($violationsCount >= 3)
+                    <i class="bi bi-shield-slash-fill text-danger display-1 mb-3"></i>
+                    <h3 class="fw-bold text-danger mb-2">UTS Dihentikan Otomatis!</h3>
+                    <p class="text-muted mb-4">Sistem mendeteksi <strong>3 kali pelanggaran keamanan</strong> (Pindah Tab / Screenshot / Kombinasi Tombol Dilarang). Lembar jawaban Anda telah dikumpulkan secara otomatis oleh sistem.</p>
                 @else
-                    <button @click="confirmFinish()" class="btn btn-danger rounded-pill px-4 shadow-sm border-0" style="background: linear-gradient(45deg, #eb3b5a, #fa8231);">
-                        <i class="bi bi-send-check me-1"></i> Kumpulkan
-                    </button>
+                    <i class="bi bi-check-circle-fill text-success display-1 mb-3"></i>
+                    <h3 class="fw-bold text-dark mb-2">UTS Berhasil Dikumpulkan!</h3>
+                    <p class="text-muted mb-4">Jawaban Anda untuk UTS <strong>{{ $exam->title }}</strong> telah berhasil tersimpan di sistem.</p>
                 @endif
+                <a href="/exam/{{ $exam->id }}/result" class="btn btn-primary btn-lg fw-bold rounded-3 shadow-sm">
+                    <i class="bi bi-file-earmark-text-fill me-2"></i>Lihat Rincian Jawaban &amp; Nilai
+                </a>
             </div>
         </div>
     </div>
 
-    <div class="row mt-4">
-        <!-- Question Area -->
-        <div class="col-md-8">
-            <div class="card border-0 shadow-sm min-vh-50">
-                <div class="card-header bg-transparent d-flex justify-content-between align-items-center p-4">
-                    <h4 class="mb-0 fw-bold">Soal No. {{ $currentQuestionIndex + 1 }}</h4>
-                    <span class="badge bg-primary px-3 rounded-pill">{{ $currentQuestion->type }}</span>
-                </div>
-                <div class="card-body p-4">
-                    <div class="question-text fs-5 mb-5 lh-base">
-                        {!! $currentQuestion->text !!}
-                    </div>
+    <!-- ══════════════ ACTIVE EXAM VIEW ══════════════ -->
+    @else
 
-                    <div class="options space-y-3">
-                        @foreach($currentQuestion->options as $index => $option)
-                            <div class="form-check option-glass border @if($selectedOptionId == $option->id) border-primary @endif" 
-                                 x-on:click="playSFX('click'); $wire.set('selectedOptionId', {{ $option->id }})">
-                                <input class="form-check-input mt-1" type="radio" name="option" id="option{{ $option->id }}" 
-                                       value="{{ $option->id }}" wire:model.live="selectedOptionId">
-                                <label class="form-check-label ms-2 d-block w-100 fs-6" for="option{{ $option->id }}" style="cursor: pointer;">
-                                    <span class="fw-bold me-2">{{ chr(65 + $index) }}.</span> {{ $option->text }}
-                                </label>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    <div class="mt-5 border-top pt-4">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="doubtfulCheck" wire:click="toggleDoubtful" @if($isDoubtful) checked @endif>
-                            <label class="form-check-label fw-bold @if($isDoubtful) text-warning @endif" for="doubtfulCheck">
-                                <i class="bi bi-question-circle me-1"></i> Tandai Ragu-ragu
-                            </label>
-                        </div>
-                    </div>
+    <!-- Top bar -->
+    <div class="bg-dark text-white p-3 rounded-3 shadow-sm mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <span class="badge bg-primary text-white mb-1">{{ $exam->course->code ?? 'MK' }} - {{ $exam->course->name ?? 'Mata Kuliah' }}</span>
+                <h5 class="fw-bold text-white mb-0">{{ $exam->title }}</h5>
+            </div>
+            <div class="col-md-6 text-md-end mt-2 mt-md-0 d-flex align-items-center justify-content-md-end gap-3">
+                <!-- Security Badge -->
+                <div class="text-center bg-danger px-3 rounded-3 me-1" style="padding-top:6px;padding-bottom:6px;">
+                    <small class="text-white-50 d-block text-uppercase" style="font-size:10px;"><i class="bi bi-shield-exclamation me-1"></i>Keamanan</small>
+                    <span id="violation-badge" class="font-monospace fw-bold fs-6 text-white">{{ $violationsCount }} / 3 Pelanggaran</span>
                 </div>
-                <div class="card-footer bg-transparent border-0 d-flex justify-content-between p-4">
-                    <button class="btn btn-secondary px-4 {{ $currentQuestionIndex == 0 ? 'invisible' : '' }}" x-on:click="playSFX('click'); $wire.previousQuestion()">
-                        <i class="bi bi-arrow-left me-2"></i> Sebelumnya
+                <!-- Timer Badge -->
+                <div class="text-center bg-secondary px-3 rounded-3" style="padding-top:6px;padding-bottom:6px;">
+                    <small class="text-white-50 d-block text-uppercase" style="font-size:10px;"><i class="bi bi-clock-history me-1"></i>Sisa Waktu UTS</small>
+                    <span id="exam-timer" class="font-monospace fw-bold fs-5 text-warning">--:--:--</span>
+                </div>
+                <button class="btn btn-danger fw-bold"
+                    onclick="confirm('Yakin ingin mengumpulkan lembar jawaban UTS sekarang?') || event.stopImmediatePropagation()"
+                    wire:click="finishExam">
+                    <i class="bi bi-send-fill me-1"></i> Selesaikan UTS
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ Security Warning Modal (pure JS, no Bootstrap) ══ -->
+    <div id="securityWarningModal"
+         style="display:none; position:fixed; inset:0; z-index:99999;
+                background:rgba(0,0,0,0.92); align-items:center; justify-content:center;
+                backdrop-filter:blur(6px);">
+        <div style="max-width:460px; width:92%;">
+            <div class="card border-danger shadow-lg rounded-4 overflow-hidden" style="border-width:3px!important;">
+                <div class="card-header bg-danger text-white text-center py-3 border-0">
+                    <h5 class="fw-bold mb-0">⚠️ PERINGATAN KEAMANAN UJIAN</h5>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <div id="alarmIcon" style="font-size:4rem; display:inline-block;">🚨</div>
+                    <h4 class="fw-bold text-danger mt-2 mb-2">Tindakan Mencurigakan Terdeteksi!</h4>
+                    <p class="text-dark mb-3">
+                        Sistem mendeteksi Anda mencoba <strong id="violationReason">melakukan pelanggaran</strong>!
+                    </p>
+                    <div class="alert alert-danger fw-bold fs-5 py-2 mb-3">
+                        ⛔ Pelanggaran Ke-<span id="modalViolationCount">0</span> dari 3
+                    </div>
+                    <p class="text-muted small mb-4">
+                        Jika melanggar <strong>3 kali</strong>, ujian akan
+                        <strong class="text-danger">OTOMATIS DIKUMPULKAN</strong>!
+                    </p>
+                    <button id="modalDismissBtn" type="button"
+                            class="btn btn-danger btn-lg w-100 fw-bold rounded-3"
+                            onclick="window.__examCloseModal()">
+                        <i class="bi bi-check-circle me-1"></i> Saya Mengerti &amp; Lanjutkan Ujian
                     </button>
-                    
-                    <button class="btn btn-primary px-5 shadow-sm" x-on:click="playSFX('click'); $wire.nextQuestion()">
-                        {{ $currentQuestionIndex == count($questions) - 1 ? 'Selesai / Materi Berikutnya' : 'Lanjut' }} <i class="bi bi-arrow-right ms-2"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sidebar Navigation -->
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-transparent p-4">
-                    <h4 class="mb-0 fw-bold">Navigasi Soal</h4>
-                </div>
-                <div class="card-body p-4">
-                    <div class="d-flex flex-wrap gap-2">
-                        @php 
-                            $answers = \App\Models\UserAnswer::where('result_id', $result->id)->get()->keyBy('question_id');
-                        @endphp
-                        @foreach($questions as $index => $q)
-                            @php
-                                $ans = $answers->get($q->id);
-                                $btnClass = 'btn-outline-secondary';
-                                if ($currentQuestionIndex == $index) {
-                                    $btnClass = 'btn-primary';
-                                } elseif ($ans) {
-                                    $btnClass = $ans->is_doubtful ? 'btn-warning text-white' : 'btn-outline-primary active';
-                                }
-                            @endphp
-                            <button wire:click="goToQuestion({{ $index }})" 
-                                    class="btn rounded-4 d-flex align-items-center justify-content-center p-0 {{ $btnClass }}"
-                                    style="width: 42px; height: 42px; font-weight: 700;">
-                                {{ $index + 1 }}
-                            </button>
-                        @endforeach
-                    </div>
-
-                    <div class="mt-4 pt-3 border-top small text-muted">
-                        <div class="d-flex align-items-center mb-2">
-                            <span class="btn btn-primary btn-sm rounded-3 me-2" style="width: 20px; height: 20px;"></span> Posisi Sekarang
-                        </div>
-                        <div class="d-flex align-items-center mb-2">
-                            <span class="btn btn-outline-primary active btn-sm rounded-3 me-2" style="width: 20px; height: 20px;"></span> Terjawab (Yakin)
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="btn btn-warning btn-sm rounded-3 me-2" style="width: 20px; height: 20px;"></span> Ragu-ragu
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Subject Progress -->
-            <div class="card border-0 shadow-sm mt-4">
-                <div class="card-body p-4">
-                    <h6 class="text-muted small text-uppercase mb-3">Informasi Bagian</h6>
-                    @foreach($exam->subTests as $idx => $st)
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="small @if($idx == $currentSubTestIndex) fw-bold text-primary @elseif($idx < $currentSubTestIndex) text-success @else text-muted @endif">
-                                {{ $st->title }}
-                            </span>
-                            @if($idx < $currentSubTestIndex)
-                                <i class="bi bi-check-circle-fill text-success small"></i>
-                            @elseif($idx == $currentSubTestIndex)
-                                <span class="badge bg-primary rounded-pill x-small" style="font-size: 0.6rem;">SEDANG DIKERJAKAN</span>
-                            @endif
-                        </div>
-                    @endforeach
                 </div>
             </div>
         </div>
     </div>
-    @endif
 
-    <!-- Floating Scratchpad Toggle -->
-    @if(!$showInstructions && !$isFinished)
-    <div class="position-fixed bottom-0 end-0 m-4 shadow-lg rounded-circle" style="z-index: 2000;">
-        <button class="btn btn-primary rounded-circle p-3 d-flex align-items-center justify-content-center" 
-                @click="showScratchpad = !showScratchpad; if(showScratchpad) $nextTick(() => initCanvas())"
-                title="Coret-coret">
-            <i class="bi bi-pencil-fill fs-4" x-show="!showScratchpad"></i>
-            <i class="bi bi-x-lg fs-4" x-show="showScratchpad"></i>
-        </button>
-    </div>
-    @endif
-
-    <!-- Canvas Scratchpad Overlay -->
-    <div x-show="showScratchpad" 
-         x-transition.opacity
-         class="position-fixed top-0 start-0 w-100 h-100" 
-         style="z-index: 1000; background: rgba(255, 255, 255, 0.1); backdrop-filter: none;">
-        
-        <div class="d-flex justify-content-center gap-3 p-3 bg-white shadow-sm position-absolute top-0 start-50 translate-middle-x rounded-bottom-4 border">
-            <h6 class="mb-0 fw-bold me-3 align-self-center"><i class="bi bi-brush me-2"></i> Papan Coret</h6>
-            <button class="btn btn-sm btn-outline-danger px-3 py-1" @click="clearCanvas()">
-                <i class="bi bi-eraser-fill me-1"></i> Hapus Semua
-            </button>
-            <button class="btn btn-sm btn-secondary px-3 py-1" @click="showScratchpad = false">
-                <i class="bi bi-check2 me-1"></i> Selesai
-            </button>
-            <div class="ms-3 border-start ps-3 small text-muted align-self-center d-none d-md-block">
-                Gunakan mouse/jari untuk mencoret
-            </div>
-        </div>
-
-        <canvas x-ref="scratchCanvas"
-                @mousedown="startDrawing"
-                @mousemove="draw"
-                @mouseup="stopDrawing"
-                @mouseleave="stopDrawing"
-                @touchstart="startDrawing"
-                @touchmove="draw"
-                @touchend="stopDrawing"
-                class="w-100 h-100 cursor-crosshair"
-                style="cursor: crosshair;">
-        </canvas>
-    </div>
     <style>
-        #exam-content-area {
-            -webkit-user-select: none !important;
-            -moz-user-select: none !important;
-            -ms-user-select: none !important;
-            user-select: none !important;
+        @keyframes alarmPulse {
+            0%   { transform: scale(1) rotate(0deg); }
+            25%  { transform: scale(1.2) rotate(-10deg); }
+            50%  { transform: scale(1) rotate(10deg); }
+            75%  { transform: scale(1.2) rotate(-5deg); }
+            100% { transform: scale(1) rotate(0deg); }
         }
-        @media print {
-            body { display: none !important; }
-        }
-        .content-blur {
-            filter: blur(25px) grayscale(100%);
-            transition: filter 0.3s ease;
-        }
+        .alarm-shake { animation: alarmPulse 0.5s ease infinite; }
     </style>
+
+    <!-- ══════════ Question Area ══════════ -->
+    <div class="row g-4">
+        <div class="col-lg-8 col-xl-9">
+            @if($currentQuestion)
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center border-bottom">
+                    <div>
+                        <span class="badge bg-dark fs-6 me-2">Soal No. {{ $currentQuestionIndex + 1 }} dari {{ count($questions) }}</span>
+                        @if($currentQuestion->type === 'multiple_choice')
+                            <span class="badge bg-primary">Pilihan Ganda</span>
+                        @else
+                            <span class="badge bg-warning text-dark">Essay / Uraian</span>
+                        @endif
+                    </div>
+                    <span class="badge bg-success fs-6">Bobot: {{ number_format($currentQuestion->weight, 1) }} Poin</span>
+                </div>
+                <div class="card-body p-4" unselectable="on" onselectstart="return false;" oncopy="return false;" oncut="return false;">
+                    <div class="fs-5 text-dark fw-semibold mb-4" style="white-space:pre-line; user-select:none;">{{ $currentQuestion->question_text }}</div>
+
+                    @if($currentQuestion->type === 'multiple_choice')
+                    <div class="d-flex flex-column gap-3 mb-4" style="user-select:none;">
+                        @foreach($currentQuestion->options as $oIdx => $opt)
+                        <div class="p-3 border rounded-3 {{ $selectedOptionId == $opt->id ? 'border-primary bg-primary-subtle text-primary fw-bold shadow-sm' : 'bg-light text-dark' }}"
+                             wire:click="selectOption({{ $opt->id }})" style="cursor:pointer;">
+                            <div class="d-flex align-items-center">
+                                <span class="badge {{ $selectedOptionId == $opt->id ? 'bg-primary' : 'bg-secondary' }} font-monospace fs-6 me-3">{{ chr(65 + $oIdx) }}</span>
+                                <span class="fs-6">{{ $opt->option_text }}</span>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                    @else
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark mb-2"><i class="bi bi-pencil-square me-1"></i> Ketikkan Jawaban Uraian / Essay Anda di Sini:</label>
+                        <textarea class="form-control border-primary shadow-sm" wire:model.blur="essayAnswer" rows="8"
+                                  placeholder="Tuliskan penjelasan lengkap, langkah-langkah, atau kode program sesuai instruksi soal..."></textarea>
+                    </div>
+                    @endif
+
+                    <div class="form-check mb-4 bg-light p-3 rounded-3 border">
+                        <input class="form-check-input" type="checkbox" wire:model.live="isDoubtful" id="doubtCheck">
+                        <label class="form-check-label fw-bold text-warning" for="doubtCheck">
+                            <i class="bi bi-flag-fill me-1"></i> Tandai Ragu-Ragu untuk soal ini
+                        </label>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <button class="btn btn-outline-secondary fw-bold px-4" wire:click="previousQuestion" @if($currentQuestionIndex == 0) disabled @endif>
+                            <i class="bi bi-chevron-left me-1"></i> Sebelumnya
+                        </button>
+                        @if($currentQuestionIndex < count($questions) - 1)
+                        <button class="btn btn-primary fw-bold px-4" wire:click="nextQuestion">
+                            Selanjutnya <i class="bi bi-chevron-right ms-1"></i>
+                        </button>
+                        @else
+                        <button class="btn btn-success fw-bold px-4"
+                                onclick="confirm('Ini adalah soal terakhir. Selesaikan UTS sekarang?') || event.stopImmediatePropagation()"
+                                wire:click="finishExam">
+                            <i class="bi bi-check-all me-1"></i> Kumpulkan Ujian
+                        </button>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @endif
+        </div>
+
+        <!-- Question Grid Nav -->
+        <div class="col-lg-4 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-transparent py-3">
+                    <h6 class="card-title mb-0 fw-bold"><i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>Navigasi Nomor Soal</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        @foreach($questions as $qIdx => $qItem)
+                        @php
+                            $isCurrent = ($currentQuestionIndex == $qIdx);
+                            $isDoubt   = isset($userAnswers[$qItem->id]) && $userAnswers[$qItem->id] == true;
+                        @endphp
+                        <button type="button"
+                                class="btn btn-sm fw-bold rounded-3 {{ $isCurrent ? 'btn-primary' : ($isDoubt ? 'btn-warning text-dark' : 'btn-outline-secondary') }}"
+                                style="width:44px;height:44px;"
+                                wire:click="goToQuestion({{ $qIdx }})">
+                            {{ $qIdx + 1 }}
+                        </button>
+                        @endforeach
+                    </div>
+                    <div class="p-3 bg-light rounded-3 small">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-primary" style="width:14px;height:14px;display:inline-block;"></span><span>Soal Sedang Aktif</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-warning" style="width:14px;height:14px;display:inline-block;"></span><span>Ditandai Ragu-Ragu</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge border" style="width:14px;height:14px;display:inline-block;"></span><span>Belum Dikerjakan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @script
+    <script>
+        // Guard: only boot once per exam (survives Livewire re-renders)
+        var BOOT_KEY = '__examBoot_' + '{{ $exam->id }}';
+        if (window[BOOT_KEY]) return;
+        window[BOOT_KEY] = true;
+
+        var EXAM_KEY      = 'exam_dl_' + '{{ $exam->id }}' + '_' + '{{ auth()->id() }}';
+        var MAX_VIOLATIONS = 3;
+        window.__examV    = Number('{{ (int)($violationsCount ?? 0) }}');
+        window.__examEnd  = false;
+        var lastViol      = 0;  // debounce timestamp
+
+        // ── AUDIO ──────────────────────────────────────────────────
+        var __ac = null;
+        function getAC() {
+            if (!__ac) {
+                try { __ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+            }
+            return __ac;
+        }
+        // Unlock audio context on any user interaction
+        ['click','keydown','touchstart'].forEach(function(ev) {
+            document.addEventListener(ev, function() {
+                var c = getAC();
+                if (c && c.state === 'suspended') c.resume();
+            }, { passive: true });
+        });
+
+        function playAlarm() {
+            var c = getAC(); if (!c) return;
+            function beeps() {
+                [[880,0.00],[880,0.22],[1320,0.45]].forEach(function(p) {
+                    try {
+                        var o = c.createOscillator(), g = c.createGain();
+                        o.connect(g); g.connect(c.destination);
+                        o.type = 'sawtooth'; o.frequency.value = p[0];
+                        g.gain.setValueAtTime(1.3, c.currentTime + p[1]);
+                        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + p[1] + 0.28);
+                        o.start(c.currentTime + p[1]);
+                        o.stop(c.currentTime  + p[1] + 0.32);
+                    } catch(e){}
+                });
+            }
+            c.state === 'suspended' ? c.resume().then(beeps) : beeps();
+        }
+
+        // ── TIMER ──────────────────────────────────────────────────
+        function getDeadline() {
+            var serverSecs = Number('{{ (int)($timeLeftSeconds ?? 0) }}');
+            var s = localStorage.getItem(EXAM_KEY);
+            if (s) {
+                var storedDl = parseInt(s, 10);
+                var rem = Math.floor((storedDl - Date.now()) / 1000);
+                // If stored deadline is expired/ended but server says we still have time (> 10s),
+                // the exam was reset by Admin! Clear stale localStorage deadline.
+                if (rem <= 0 && serverSecs > 10) {
+                    localStorage.removeItem(EXAM_KEY);
+                    s = null;
+                }
+            }
+            if (!s) {
+                if (serverSecs <= 0) return Date.now();
+                var dl = Date.now() + serverSecs * 1000;
+                localStorage.setItem(EXAM_KEY, String(dl));
+                return dl;
+            }
+            return parseInt(s, 10);
+        }
+        function clearDL() { localStorage.removeItem(EXAM_KEY); }
+
+        function tick() {
+            if (window.__examEnd) return;
+            var el  = document.getElementById('exam-timer');
+            var rem = Math.floor((getDeadline() - Date.now()) / 1000);
+            if (rem <= 0) {
+                if (el) { el.innerText = '00:00:00'; el.style.color = '#ff4d4d'; }
+                clearDL(); doEnd(); return;
+            }
+            var h  = String(Math.floor(rem / 3600)).padStart(2,'0');
+            var mi = String(Math.floor((rem % 3600) / 60)).padStart(2,'0');
+            var sc = String(rem % 60).padStart(2,'0');
+            if (el) { el.innerText = h+':'+mi+':'+sc; el.style.color = rem <= 300 ? '#ff4d4d' : '#ffc107'; }
+        }
+        tick();
+        setInterval(tick, 1000);
+
+        // ── END EXAM ───────────────────────────────────────────────
+        function doEnd() {
+            if (window.__examEnd) return;
+            window.__examEnd = true;
+            clearDL();
+            $wire.call('finishExam');
+        }
+
+        // ── MODAL ──────────────────────────────────────────────────
+        function showModal(reason, count) {
+            var m   = document.getElementById('securityWarningModal');
+            var mc  = document.getElementById('modalViolationCount');
+            var mr  = document.getElementById('violationReason');
+            var b   = document.getElementById('violation-badge');
+            var ico = document.getElementById('alarmIcon');
+            var btn = document.getElementById('modalDismissBtn');
+            if (mc)  mc.innerText  = count;
+            if (mr)  mr.innerText  = reason;
+            if (b)   b.innerText   = count + ' / 3 Pelanggaran';
+            if (ico) ico.className = 'alarm-shake';
+            if (m)   m.style.display = 'flex';
+            if (count >= MAX_VIOLATIONS && btn) {
+                btn.disabled  = true;
+                btn.innerText = '⛔ Ujian dihentikan otomatis...';
+            }
+        }
+        window.__examCloseModal = window.closeSecurityModal = function() {
+            var m   = document.getElementById('securityWarningModal');
+            var ico = document.getElementById('alarmIcon');
+            if (m)   m.style.display = 'none';
+            if (ico) ico.className   = '';
+        };
+
+        // ── VIOLATION ──────────────────────────────────────────────
+        function triggerViol(reason) {
+            if (window.__examEnd) return;
+            var now = Date.now();
+            if (now - lastViol < 2000) return;   // debounce 2s
+            lastViol = now;
+
+            window.__examV++;
+            var cnt = window.__examV;
+            console.warn('[UJIAN SECURITY] Pelanggaran #'+cnt+': '+reason);
+
+            playAlarm();
+            $wire.call('recordViolation');
+            showModal(reason, cnt);
+
+            if (cnt >= MAX_VIOLATIONS) { setTimeout(doEnd, 3000); }
+        }
+
+        // ── LISTENERS ──────────────────────────────────────────────
+
+        // 1. Tab switch
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) triggerViol('berpindah tab / meminimalkan browser');
+        });
+
+        // 2. Focus lost to other app
+        window.addEventListener('blur', function() {
+            if (document.hidden) return;
+            triggerViol('meninggalkan jendela ujian (Alt+Tab / klik luar)');
+        });
+
+        // 3. Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (window.__examEnd) return;
+            if (e.key==='PrintScreen'||e.code==='PrintScreen') {
+                e.preventDefault(); triggerViol('screenshot (PrintScreen)'); return;
+            }
+            if (e.shiftKey&&(e.metaKey||e.ctrlKey)&&'sS'.includes(e.key)) {
+                e.preventDefault(); triggerViol('screenshot (Snipping Tool)'); return;
+            }
+            if (e.key==='F12') { e.preventDefault(); triggerViol('DevTools F12'); return; }
+            if (e.ctrlKey&&e.shiftKey&&'ijcIJC'.includes(e.key)) {
+                e.preventDefault(); triggerViol('DevTools Ctrl+Shift+'+e.key); return;
+            }
+            if (e.ctrlKey&&'uU'.includes(e.key)) {
+                e.preventDefault(); triggerViol('View Source Ctrl+U'); return;
+            }
+            if ((e.ctrlKey||e.metaKey)&&'pP'.includes(e.key)) {
+                e.preventDefault(); triggerViol('Print Ctrl+P'); return;
+            }
+        });
+
+        // 4. Block copy/cut/right-click
+        document.addEventListener('copy',        function(e){ e.preventDefault(); });
+        document.addEventListener('cut',         function(e){ e.preventDefault(); });
+        document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+        // 5. Back button trap
+        history.pushState({examActive:true}, '', window.location.href);
+        window.addEventListener('popstate', function() {
+            if (window.__examEnd) return;
+            history.pushState({examActive:true}, '', window.location.href);
+            var n = document.getElementById('__backNotice');
+            if (!n) {
+                n = document.createElement('div'); n.id = '__backNotice';
+                n.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:100000;background:#1a1a2e;color:#fff;padding:12px 24px;border-radius:10px;font-weight:700;font-size:15px;border:2px solid #e74c3c;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:opacity .4s;pointer-events:none';
+                document.body.appendChild(n);
+            }
+            n.innerText = '🚫 Tidak bisa kembali saat ujian berlangsung!';
+            n.style.opacity = '1';
+            clearTimeout(n._t);
+            n._t = setTimeout(function(){ n.style.opacity='0'; }, 2500);
+        });
+
+        // 6. Before unload
+        window.addEventListener('beforeunload', function(e) {
+            if (window.__examEnd) return;
+            e.preventDefault();
+            e.returnValue = 'Ujian masih berlangsung!';
+        });
+
+        console.log('[UJIAN] Engine aktif. Violations: '+window.__examV+', TimeLeft: '+Math.floor((getDeadline()-Date.now())/1000)+'s');
+    </script>
+    @endscript
+
+    @endif
 </div>

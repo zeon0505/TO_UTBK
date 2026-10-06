@@ -1,239 +1,184 @@
 <div>
-    <div class="page-heading">
-        <div class="row">
-            <div class="col-12 col-md-6 order-md-1 order-last">
-                <h3>👥 Monitoring Peserta</h3>
-                <p class="text-subtitle text-muted">Pantau data peserta yang sudah bergabung di platform UTBK Anda.</p>
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="bi bi-people-fill text-primary me-2"></i>Kelola Pengguna Kampus</h3>
+                <p class="text-muted mb-0">Manajemen data Mahasiswa, Dosen Pengampu, dan Administrator Akademik.</p>
             </div>
         </div>
     </div>
 
-    <section class="section">
-        <!-- Flash Messages -->
-        @if (session()->has('success'))
-            <div class="alert alert-light-success color-success alert-dismissible show fade">
-                <i class="bi bi-check-circle me-2"></i> {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-        @if (session()->has('error'))
-            <div class="alert alert-light-danger color-danger alert-dismissible show fade">
-                <i class="bi bi-exclamation-circle me-2"></i> {{ session('error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-
-        <div class="row">
-            <!-- Widgets... (tetap sama) -->
-            <!-- Stats Widgets -->
-            <div class="col-6 col-lg-3 col-md-6">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body px-4 py-4-5">
-                        <div class="row">
-                            <div class="col-md-4 col-lg-12 col-xl-12 col-xxl-5 d-flex justify-content-start">
-                                <div class="stats-icon purple mb-2">
-                                    <i class="bi bi-people-fill text-white"></i>
-                                </div>
-                            </div>
-                            <div class="col-md-8 col-lg-12 col-xl-12 col-xxl-7">
-                                <h6 class="text-muted font-semibold">Total Peserta</h6>
-                                <h6 class="font-extrabold mb-0">{{ $totalUsers }}</h6>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-3 col-md-6">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body px-4 py-4-5">
-                        <div class="row">
-                            <div class="col-md-4 col-lg-12 col-xl-12 col-xxl-5 d-flex justify-content-start">
-                                <div class="stats-icon blue mb-2">
-                                    <i class="bi bi-person-plus-fill text-white"></i>
-                                </div>
-                            </div>
-                            <div class="col-md-8 col-lg-12 col-xl-12 col-xxl-7">
-                                <h6 class="text-muted font-semibold">Peserta Baru</h6>
-                                <h6 class="font-extrabold mb-0">{{ $recentUsers }}</h6>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-3 col-md-6">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body px-4 py-4-5">
-                        <div class="row">
-                            <div class="col-md-4 col-lg-12 col-xl-12 col-xxl-5 d-flex justify-content-start">
-                                <div class="stats-icon green mb-2">
-                                    <i class="bi bi-journal-check text-white"></i>
-                                </div>
-                            </div>
-                            <div class="col-md-8 col-lg-12 col-xl-12 col-xxl-7">
-                                <h6 class="text-muted font-semibold">Ujian Selesai</h6>
-                                <h6 class="font-extrabold mb-0">{{ $totalFinishedExams }}</h6>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-3 col-md-6">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body px-4 py-4-5">
-                        <div class="row">
-                            <div class="col-md-4 col-lg-12 col-xl-12 col-xxl-5 d-flex justify-content-start">
-                                <div class="stats-icon red mb-2">
-                                    <i class="bi bi-trophy-fill text-white"></i>
-                                </div>
-                            </div>
-                            <div class="col-md-8 col-lg-12 col-xl-12 col-xxl-7">
-                                <h6 class="text-muted font-semibold">Avg. Skor IRT</h6>
-                                <h6 class="font-extrabold mb-0">{{ number_format($avgGlobalScore, 1) }}</h6>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    @if (session()->has('message'))
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>{{ session('message') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-
-        <div class="card shadow-sm border-0 mt-4">
-            <div class="card-header bg-white py-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Daftar Lengkap Peserta</h5>
-                    <div class="form-group mb-0">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control bg-light border-0" 
-                                   placeholder="Cari Nama atau Email..." wire:model.live="search">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="px-4 py-3">Nama Lengkap</th>
-                                <th class="py-3">Email</th>
-                                <th class="py-3">Asal Sekolah</th>
-                                <th class="py-3">Tgl Gabung</th>
-                                <th class="px-4 py-3 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($users as $user)
-                            <tr>
-                                <td class="px-4 py-3">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-md me-3">
-                                            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->name) }}&background=random" alt="">
-                                        </div>
-                                        <div>
-                                            <span class="fw-bold d-block">{{ $user->name }}</span>
-                                            @if($user->is_admin) 
-                                                <span class="badge bg-light-danger text-danger btn-sm" style="font-size: 0.7rem">Administrator</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="py-3">
-                                    <span class="text-muted"><i class="bi bi-envelope me-1"></i> {{ $user->email }}</span>
-                                </td>
-                                <td class="py-3">
-                                    <span class="badge bg-light-secondary text-secondary font-normal">{{ $user->school ?? 'Tidak Diisi' }}</span>
-                                </td>
-                                <td class="py-3">
-                                    <small class="text-muted">{{ $user->created_at->format('d M Y, H:i') }}</small>
-                                </td>
-                                <td class="px-4 py-3 text-center">
-                                    <div class="btn-group">
-                                        <button wire:click="toggleAdmin({{ $user->id }})" 
-                                                wire:confirm="Ubah status akses admin user ini?"
-                                                class="btn {{ $user->is_admin ? 'btn-light-danger' : 'btn-light-info' }} btn-sm rounded-pill px-2 me-1" 
-                                                title="{{ $user->is_admin ? 'Cabut Akses Admin' : 'Jadikan Admin' }}">
-                                            <i class="bi {{ $user->is_admin ? 'bi-shield-fill-x' : 'bi-shield-lock-fill' }}"></i>
-                                        </button>
-                                        <button wire:click="editUser({{ $user->id }})" class="btn btn-light-primary btn-sm rounded-pill px-2" title="Edit">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button wire:click="deleteUser({{ $user->id }})" 
-                                                wire:confirm="Apakah Anda yakin ingin menghapus user ini? Semua data hasil tesnya akan ikut terhapus."
-                                                class="btn btn-light-danger btn-sm rounded-pill px-2 ms-1" title="Hapus">
-                                            <i class="bi bi-trash-fill"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="5" class="text-center py-5">
-                                    <img src="https://illustrations.popsy.co/amber/no-results.svg" style="height: 150px" class="mb-3">
-                                    <p class="text-muted">Tidak ada user yang ditemukan dengan filter tersebut.</p>
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                <div class="px-4 py-3">
-                    {{ $users->links() }}
-                </div>
-            </div>
-        </div>
-    </section>
-
-    @if($editingUserId)
-    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Edit Data Peserta</h5>
-                    <button type="button" class="btn-close btn-close-white" wire:click="cancelEdit"></button>
-                </div>
-                <form wire:submit="updateUser">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Nama Lengkap</label>
-                            <input type="text" class="form-control" wire:model="editingName">
-                            @error('editingName') <span class="text-danger small">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Email</label>
-                            <input type="email" class="form-control" wire:model="editingEmail">
-                            @error('editingEmail') <span class="text-danger small">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Asal Sekolah</label>
-                            <input type="text" class="form-control" wire:model="editingSchool">
-                            @error('editingSchool') <span class="text-danger small">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-primary">Reset Password (Opsional)</label>
-                            <input type="text" class="form-control" wire:model="editingPassword" placeholder="Ketik password baru jika ingin meriset">
-                            <small class="text-muted">Biarkan kosong jika tidak ingin mengubah password.</small>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light" wire:click="cancelEdit">Batal</button>
-                        <button type="submit" class="btn btn-primary px-4">Simpan Perubahan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
     @endif
 
-    <style>
-        .stats-icon { width: 3rem; height: 3rem; border-radius: .5rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
-        .stats-icon.purple { background-color: #9694ff; }
-        .stats-icon.blue { background-color: #57caeb; }
-        .stats-icon.green { background-color: #5ddab4; }
-        .stats-icon.red { background-color: #ff7976; }
-        .avatar-md { width: 2.5rem; height: 2.5rem; }
-        .avatar img { border-radius: 50%; width: 100%; }
-        .bg-light-success { background-color: #e8fadf; }
-        .bg-light-danger { background-color: #fee5e5; }
-        .bg-light-primary { background-color: #e7e5ff; }
-    </style>
+    @if (session()->has('error'))
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="row g-4">
+        <!-- Form Add/Edit User -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent py-3">
+                    <h5 class="card-title mb-0 fw-bold">
+                        {{ $isEditing ? 'Ubah Data Pengguna' : 'Tambah Pengguna Baru' }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form wire:submit.prevent="saveUser">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Role Pengguna</label>
+                            <select class="form-select" wire:model.live="role">
+                                <option value="mahasiswa">Mahasiswa</option>
+                                <option value="dosen">Dosen Pengampu</option>
+                                <option value="admin">Admin Akademik</option>
+                                <option value="superadmin">Super Admin (Kaprodi)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nama Lengkap</label>
+                            <input type="text" class="form-control" wire:model="name" placeholder="Nama pengguna">
+                            @error('name') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Email Kampus</label>
+                            <input type="email" class="form-control" wire:model="email" placeholder="email@kampus.ac.id">
+                            @error('email') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+
+                        @if($role === 'mahasiswa')
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">NIM</label>
+                                <input type="text" class="form-control" wire:model="nim" placeholder="NIM">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Kelas</label>
+                                <input type="text" class="form-control" wire:model="kelas" placeholder="misal: TI-5A">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Program Studi</label>
+                                <input type="text" class="form-control" wire:model="prodi">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Semester</label>
+                                <input type="number" class="form-control" wire:model="semester" min="1" max="14">
+                            </div>
+                        </div>
+                        @else
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">NIP (Opsional untuk Admin/Dosen)</label>
+                            <input type="text" class="form-control" wire:model="nip" placeholder="NIP Pegawai">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Program Studi</label>
+                            <input type="text" class="form-control" wire:model="prodi" placeholder="misal: Teknik Informatika">
+                        </div>
+                        @endif
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">{{ $isEditing ? 'Ubah Password (Opsional)' : 'Password' }}</label>
+                            <input type="password" class="form-control" wire:model="password" placeholder="{{ $isEditing ? 'Kosongkan jika tidak diubah' : 'Minimal 6 karakter' }}">
+                            @error('password') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary fw-bold flex-grow-1">
+                                <i class="bi bi-save me-1"></i> {{ $isEditing ? 'Simpan Perubahan' : 'Tambah Pengguna' }}
+                            </button>
+                            @if($isEditing)
+                                <button type="button" class="btn btn-secondary" wire:click="resetFields">Batal</button>
+                            @endif
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table List Users -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="card-title mb-0 fw-bold"><i class="bi bi-list-columns me-2 text-primary"></i>Daftar Pengguna</h5>
+                        </div>
+                        <div class="col-md-6 d-flex gap-2 justify-content-md-end mt-2 mt-md-0">
+                            <input type="text" class="form-control form-control-sm" placeholder="Cari nama/email/NIM/NIP..." wire:model.live="search">
+                            <select class="form-select form-select-sm" wire:model.live="roleFilter" style="width: 140px;">
+                                <option value="all">Semua Role</option>
+                                <option value="mahasiswa">Mahasiswa</option>
+                                <option value="dosen">Dosen</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Nama & Email</th>
+                                    <th>Role</th>
+                                    <th>NIM / NIP</th>
+                                    <th>Prodi / Kelas</th>
+                                    <th class="text-end">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($users as $u)
+                                <tr>
+                                    <td>
+                                        <strong class="text-dark d-block">{{ $u->name }}</strong>
+                                        <small class="text-muted">{{ $u->email }}</small>
+                                    </td>
+                                    <td>
+                                        @if($u->role === 'admin')
+                                            <span class="badge bg-danger">Admin</span>
+                                        @elseif($u->role === 'dosen')
+                                            <span class="badge bg-primary">Dosen</span>
+                                        @else
+                                            <span class="badge bg-info text-dark">Mahasiswa</span>
+                                        @endif
+                                    </td>
+                                    <td><span class="font-monospace text-secondary fw-semibold">{{ $u->role === 'dosen' ? ($u->nip ?? '-') : ($u->nim ?? '-') }}</span></td>
+                                    <td>
+                                        <small class="d-block text-dark fw-semibold">{{ $u->prodi ?? '-' }}</small>
+                                        @if($u->role === 'mahasiswa')
+                                            <small class="text-muted">Kelas: {{ $u->kelas ?? '-' }} (Sem {{ $u->semester ?? '-' }})</small>
+                                        @endif
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-primary me-1" wire:click="editUser({{ $u->id }})" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="confirm('Hapus akun pengguna ini?') || event.stopImmediatePropagation()" wire:click="deleteUser({{ $u->id }})" title="Hapus">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">Tidak ditemukan pengguna yang sesuai.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

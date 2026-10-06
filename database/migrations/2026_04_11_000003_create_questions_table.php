@@ -6,24 +6,20 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('questions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('exam_id')->constrained()->onDelete('cascade');
-            $table->longText('text'); // HTML/Image support
-            $table->string('type'); // Multiple Choice, etc.
-            $table->integer('timer_per_question')->default(60); // In seconds
+            $table->foreignId('exam_id')->constrained('exams')->onDelete('cascade');
+            $table->enum('type', ['multiple_choice', 'essay'])->default('multiple_choice');
+            $table->longText('question_text');
+            $table->string('image')->nullable();
+            $table->decimal('weight', 8, 2)->default(10.00);
+            $table->text('explanation')->nullable(); // Rubrik / Kunci Jawaban / Pembahasan
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('questions');

@@ -17,6 +17,13 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('role')->default('mahasiswa');
+            $table->boolean('is_admin')->default(false);
+            $table->string('nim')->nullable(); // NIM Mahasiswa
+            $table->string('nip')->nullable(); // NIP Dosen
+            $table->string('prodi')->nullable(); // Program Studi
+            $table->integer('semester')->nullable();
+            $table->string('kelas')->nullable(); // Kelas (misal: IF-3A)
             $table->rememberToken();
             $table->timestamps();
         });

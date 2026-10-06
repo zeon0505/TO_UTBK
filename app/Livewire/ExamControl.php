@@ -3,313 +3,272 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use Livewire\Attributes\Layout;
 use App\Models\Exam;
-use App\Models\SubTest;
 use App\Models\Question;
-use App\Models\Option;
 use App\Models\Result;
 use App\Models\UserAnswer;
 use Carbon\Carbon;
-use App\Services\IRTService;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
+#[Layout('layouts.app')]
 class ExamControl extends Component
 {
-    public $exam;
-    public $result;
-    public $currentSubTestIndex = 0;
-    public $currentSubTest;
-    public $questions;
-    public $currentQuestionIndex = 0;
-    public $currentQuestion;
-    public $selectedOptionId;
-    public $isDoubtful = false;
+    public ?Exam $exam = null;
+    public ?Result $result = null;
+    public mixed $questions = null;
+    public int $currentQuestionIndex = 0;
+    public ?Question $currentQuestion = null;
     
-    // Timer Variables
-    public $sectionTimeLeft; // in seconds for the WHOLE SUBTEST
-    public $isFinished = false;
-    public $showInstructions = true;
+    // Student Answer State
+    public ?int $selectedOptionId = null;
+    public string $essayAnswer = '';
+    public bool $isDoubtful = false;
 
-    protected $listeners = ['timeUp' => 'moveToNextSection'];
+    // Token Modal State
+    public string $tokenInput = '';
+    public string $tokenError = '';
+    public bool $showTokenModal = false;
 
-    public function mount($examId)
+    // Timer & Security Alarm State
+    public int $timeLeftSeconds = 0;
+    public int $violationsCount = 0;
+    public bool $isFinished = false;
+
+    protected $listeners = [
+        'autoSubmitExam' => 'finishExam',
+        'recordSecurityViolation' => 'recordViolation'
+    ];
+
+    public function mount(int|string $examId): void
     {
-        $this->exam = Exam::with(['subTests.questions.options'])->findOrFail($examId);
-        $this->result = Result::firstOrCreate([
+        $this->exam = Exam::with(['course', 'questions.options'])->findOrFail($examId);
+        
+        $this->result = Result::where('user_id', Auth::id())
+            ->where('exam_id', $this->exam->id)
+            ->first();
+
+        if (!$this->result) {
+            $this->showTokenModal = true;
+        } else {
+            $this->initExamSession();
+        }
+    }
+
+    public function verifyToken()
+    {
+        $this->tokenError = '';
+        if (strtoupper(trim($this->tokenInput)) !== strtoupper($this->exam->token)) {
+            $this->tokenError = 'Kode Token UTS salah! Silakan tanyakan kepada dosen pengampu.';
+            return;
+        }
+
+        $this->showTokenModal = false;
+        
+        $this->result = Result::create([
             'user_id' => Auth::id(),
             'exam_id' => $this->exam->id,
-            'finished_at' => null,
-        ], [
             'started_at' => now(),
-            'total_score' => 0,
+            'score' => 0,
+            'is_graded' => false,
+            'violations_count' => 0,
         ]);
 
-        $targetSubject = request()->query('subject');
-        
-        // --- PROTEKSI NAVIGASI (ANTI-SKIP) ---
-        // Cari subtest terakhir yang sudah dimulai/dikerjakan
-        $data = $this->result->section_data ?? [];
-        $lastStartedIndex = 0;
-        foreach ($this->exam->subTests as $idx => $st) {
-            if (isset($data[(string)$st->id])) {
-                $lastStartedIndex = $idx;
-            }
-        }
-
-        if ($targetSubject) {
-            $requestedIndex = $this->exam->subTests->search(fn($st) => $st->id == $targetSubject);
-            
-            // Aturan Adil: Siswa hanya boleh akses index yang SEDANG berjalan (lastStartedIndex)
-            // Tidak boleh mundur ke yang sudah lewat, tidak boleh lompat ke masa depan.
-            if ($requestedIndex !== false) {
-                if ($requestedIndex > $lastStartedIndex + 1) {
-                    // Mencoba lompat jauh? Blokir, pindahkan ke yang seharusnya.
-                    $this->currentSubTestIndex = $lastStartedIndex;
-                } elseif ($requestedIndex < $lastStartedIndex) {
-                    // Mencoba balik ke yang sudah lewat? Blokir, pindahkan ke yang sedang aktif.
-                    $this->currentSubTestIndex = $lastStartedIndex;
-                } else {
-                    $this->currentSubTestIndex = $requestedIndex;
-                }
-            }
-        } else {
-            // Default ke subtest terawal yang belum selesai
-            $this->currentSubTestIndex = $lastStartedIndex;
-        }
+        $this->initExamSession();
     }
 
-    public function startExam()
+    public function recordViolation()
     {
-        $this->showInstructions = false;
-        $this->loadSubTest();
-        $this->dispatch('play-sfx', type: 'start');
+        if (!$this->result || $this->result->submitted_at) return;
+
+        $this->violationsCount++;
+        $this->result->increment('violations_count');
+
+        if ($this->violationsCount >= 3) {
+            $this->finishExam();
+        }
     }
 
-    public function loadSubTest()
+    public function initExamSession()
     {
-        if ($this->exam->subTests->isEmpty()) {
-            session()->flash('error', 'Tryout ini belum memiliki Sub-tes.');
-            return $this->redirect('/dashboard', navigate: true);
+        $this->showTokenModal = false;
+
+        if ($this->result->submitted_at) {
+            $this->isFinished = true;
+            return;
         }
 
-        $this->currentSubTest = $this->exam->subTests[$this->currentSubTestIndex];
-        $this->questions = $this->currentSubTest->questions;
-        
-        if ($this->questions->isEmpty()) {
-            session()->flash('error', 'Sub-tes ini belum memiliki soal.');
-            return $this->redirect('/dashboard', navigate: true);
+        $this->isFinished = false;
+
+        // If started_at is null (was reset by admin), re-start session fresh now
+        if (!$this->result->started_at) {
+            $this->result->update([
+                'started_at' => now(),
+                'violations_count' => 0
+            ]);
+            $this->result->refresh();
         }
 
-        $this->currentQuestionIndex = 0;
-        
-        // --- SHUFFLING LOGIC (INTEGRITAS & KEADILAN) ---
-        if (!isset($data[$sectionId]['question_order'])) {
-            // Jika baru mulai, acak urutan ID soal
-            $questionIds = $this->currentSubTest->questions->pluck('id')->toArray();
-            shuffle($questionIds);
-            
-            // Acak urutan ID opsi untuk setiap soal
-            $optionOrders = [];
-            foreach ($this->currentSubTest->questions as $q) {
-                $oIds = $q->options->pluck('id')->toArray();
-                shuffle($oIds);
-                $optionOrders[$q->id] = $oIds;
-            }
+        $this->violationsCount = (int)($this->result->violations_count ?? 0);
 
-            $data[$sectionId]['question_order'] = $questionIds;
-            $data[$sectionId]['option_orders'] = $optionOrders;
-            $data[$sectionId]['started_at'] = now()->toDateTimeString();
-            
-            $this->result->update(['section_data' => $data]);
-            $this->sectionTimeLeft = $totalMinutes * 60;
+        // Calculate accurate time left
+        $startedAt = Carbon::parse($this->result->started_at);
+        $allowedSeconds = (int)($this->exam->duration_minutes * 60);
+        $now = now();
+        
+        $elapsedSeconds = $startedAt->greaterThan($now) ? 0 : (int)$now->diffInSeconds($startedAt);
+        $this->timeLeftSeconds = max(0, $allowedSeconds - $elapsedSeconds);
+
+        if ($this->timeLeftSeconds <= 0) {
+            $this->finishExam();
+            return;
+        }
+
+        // Load Questions
+        if ($this->exam->randomize_questions) {
+            $this->questions = $this->exam->questions->shuffle()->values();
         } else {
-            // Gunakan sisa waktu yang ada
-            $startedAt = Carbon::parse($data[$sectionId]['started_at']);
-            $elapsedSeconds = now()->diffInSeconds($startedAt);
-            $this->sectionTimeLeft = ($totalMinutes * 60) - $elapsedSeconds;
+            $this->questions = $this->exam->questions;
         }
 
-        // Muat soal sesuai urutan yang sudah diacak (konsisten)
-        $orderedIds = $data[$sectionId]['question_order'];
-        $this->questions = Question::whereIn('id', $orderedIds)
-            ->with(['options'])
-            ->get()
-            ->sortBy(function($question) use ($orderedIds) {
-                return array_search($question->id, $orderedIds);
-            })->values();
-
-        // Terapkan urutan opsi yang sudah diacak
-        $savedOptionOrders = $data[$sectionId]['option_orders'];
-        foreach ($this->questions as $question) {
-            if (isset($savedOptionOrders[$question->id])) {
-                $oIds = $savedOptionOrders[$question->id];
-                $question->setRelation('options', $question->options->sortBy(function($option) use ($oIds) {
-                    return array_search($option->id, $oIds);
-                })->values());
-            }
+        if ($this->questions->isNotEmpty()) {
+            $this->loadQuestion(0);
         }
-
-        // Jika waktu sudah habis sebelum refresh selesai
-        if ($this->sectionTimeLeft <= 0) {
-            return $this->moveToNextSection();
-        }
-
-        $this->loadQuestion();
-        
-        // Dispatch ke frontend
-        $this->dispatch('start-section-timer', duration: $this->sectionTimeLeft);
     }
 
-    public function loadQuestion()
+    public function loadQuestion(int $index): void
     {
         if ($this->questions->isEmpty()) return;
-        
+
+        // Auto save previous question answer before moving
+        if ($this->currentQuestion) {
+            $this->saveAnswer();
+        }
+
+        $this->currentQuestionIndex = $index;
         $this->currentQuestion = $this->questions[$this->currentQuestionIndex];
-        
-        $existingAnswer = UserAnswer::where('result_id', $this->result->id)
+
+        $ans = UserAnswer::where('user_id', Auth::id())
+            ->where('exam_id', $this->exam->id)
             ->where('question_id', $this->currentQuestion->id)
             ->first();
 
-        if ($existingAnswer) {
-            $this->selectedOptionId = $existingAnswer->option_id;
-            $this->isDoubtful = $existingAnswer->is_doubtful ?? false;
+        if ($ans) {
+            $this->selectedOptionId = $ans->selected_option_id;
+            $this->essayAnswer = $ans->essay_answer ?? '';
+            $this->isDoubtful = $ans->is_doubtful ?? false;
         } else {
             $this->selectedOptionId = null;
+            $this->essayAnswer = '';
             $this->isDoubtful = false;
         }
-
-        // Paksa Timer per-soal (60 detik)
-        $this->dispatch('question-loaded', duration: 60);
     }
 
-    public function updatedSelectedOptionId()
-    {
-        $this->saveAnswer();
-    }
-
-    public function updatedIsDoubtful()
-    {
-        $this->saveAnswer();
-    }
-
-    public function selectOption($optionId)
+    public function selectOption(int $optionId): void
     {
         $this->selectedOptionId = $optionId;
         $this->saveAnswer();
     }
 
-    public function toggleDoubtful()
+    public function toggleDoubtful(): void
     {
         $this->isDoubtful = !$this->isDoubtful;
         $this->saveAnswer();
     }
 
-    public function goToQuestion($index)
+    public function saveAnswer(): void
     {
-        $this->saveAnswer();
-        $this->currentQuestionIndex = $index;
-        $this->loadQuestion();
+        if (!$this->currentQuestion || !$this->result || $this->result->submitted_at) return;
+
+        UserAnswer::updateOrCreate([
+            'user_id' => Auth::id(),
+            'exam_id' => $this->exam->id,
+            'question_id' => $this->currentQuestion->id,
+        ], [
+            'selected_option_id' => $this->currentQuestion->type === 'multiple_choice' ? $this->selectedOptionId : null,
+            'essay_answer' => $this->currentQuestion->type === 'essay' ? $this->essayAnswer : null,
+            'is_doubtful' => $this->isDoubtful,
+        ]);
     }
 
-    public function recordViolation()
+    public function goToQuestion(int $index): void
     {
-        $data = $this->result->section_data ?? [];
-        $sectionId = (string) $this->currentSubTest->id;
-        
-        $violations = $data[$sectionId]['violations'] ?? 0;
-        $data[$sectionId]['violations'] = $violations + 1;
-        
-        $this->result->update(['section_data' => $data]);
-        
-        // Cek Batas Pelanggaran (Maksimal 2 kali)
-        $totalViolations = 0;
-        foreach ($data as $sec) {
-            $totalViolations += ($sec['violations'] ?? 0);
-        }
-
-        if ($totalViolations >= 2) {
-            session()->flash('error', 'UJIAN DIHENTIKAN OTOMATIS: Terdeteksi pelanggaran berulang (pindah-pindah tab).');
-            return $this->finishExam();
-        }
-
-        // Log secara diam-diam di sisi server
-        Log::info("Violation recorded for user ".Auth::id()." on subtest ".$sectionId.". Total: ".$totalViolations);
+        $this->loadQuestion($index);
     }
 
     public function nextQuestion()
     {
-        $this->saveAnswer();
-
         if ($this->currentQuestionIndex < count($this->questions) - 1) {
-            $this->currentQuestionIndex++;
-            $this->loadQuestion();
+            $this->loadQuestion($this->currentQuestionIndex + 1);
         }
     }
 
     public function previousQuestion()
     {
-        $this->saveAnswer();
-
         if ($this->currentQuestionIndex > 0) {
-            $this->currentQuestionIndex--;
-            $this->loadQuestion();
+            $this->loadQuestion($this->currentQuestionIndex - 1);
         }
-    }
-
-    public function saveAnswer()
-    {
-        if (!$this->currentQuestion) return;
-
-        UserAnswer::updateOrCreate([
-            'result_id' => $this->result->id,
-            'question_id' => $this->currentQuestion->id,
-        ], [
-            'option_id' => $this->selectedOptionId,
-            'is_doubtful' => $this->isDoubtful,
-        ]);
-    }
-
-    public function moveToNextSection()
-    {
-        $this->saveAnswer();
-
-        if ($this->currentSubTestIndex < count($this->exam->subTests) - 1) {
-            $this->currentSubTestIndex++;
-            $this->loadSubTest();
-        } else {
-            $this->finishExam();
-        }
-    }
-
-    public function updateTotalScore()
-    {
-        $total = UserAnswer::where('result_id', $this->result->id)->sum('score_obtained');
-        $this->result->update(['total_score' => $total]);
     }
 
     public function finishExam()
     {
-        $this->saveAnswer();
-        
-        $this->result->update([
-            'finished_at' => now(),
-        ]);
-
-        // Hitung skor IRT secara real-time
-        try {
-            IRTService::updateAllUserScores();
-        } catch (\Exception $e) {
-            Log::error("Gagal update score IRT: " . $e->getMessage());
+        if ($this->currentQuestion) {
+            $this->saveAnswer();
         }
 
+        if (!$this->result) return;
+
+        // Auto Grade PG Questions
+        $answers = UserAnswer::with(['question', 'selectedOption'])
+            ->where('exam_id', $this->exam->id)
+            ->where('user_id', Auth::id())
+            ->get();
+
+        $totalPgScore = 0;
+        $totalCorrectPg = 0;
+        $hasEssay = false;
+
+        foreach ($answers as $ans) {
+            if ($ans->question->type === 'multiple_choice') {
+                if ($ans->selectedOption && $ans->selectedOption->is_correct) {
+                    $ans->score_given = $ans->question->weight;
+                    $totalPgScore += $ans->question->weight;
+                    $totalCorrectPg++;
+                } else {
+                    $ans->score_given = 0;
+                }
+                $ans->save();
+            } else {
+                $hasEssay = true;
+            }
+        }
+
+        $totalExamMaxWeight = $this->exam->questions->sum('weight');
+        $initialScore = ($totalExamMaxWeight > 0) ? ($totalPgScore / $totalExamMaxWeight) * 100 : 0;
+
+        $this->result->update([
+            'submitted_at' => now(),
+            'score' => round($initialScore, 2),
+            'total_correct_pg' => $totalCorrectPg,
+            'is_graded' => !$hasEssay, // If no essay, automatically fully graded!
+        ]);
+
         $this->isFinished = true;
-        
-        session()->flash('success', 'Ujian telah berhasil dikumpulkan!');
+        return redirect()->route('exam.result', ['examId' => $this->exam->id]);
     }
 
     public function render()
     {
-        return view('livewire.exam-control')->layout('layouts.app');
+        $userAnswers = [];
+        if ($this->exam && Auth::check()) {
+            $userAnswers = UserAnswer::where('exam_id', $this->exam->id)
+                ->where('user_id', Auth::id())
+                ->pluck('is_doubtful', 'question_id')
+                ->toArray();
+        }
+
+        return view('livewire.exam-control', [
+            'userAnswers' => $userAnswers,
+        ]);
     }
 }

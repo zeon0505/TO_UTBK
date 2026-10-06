@@ -4,199 +4,149 @@ namespace App\Livewire\Admin;
 
 use Livewire\Component;
 use App\Models\Exam;
+use App\Models\Course;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class ExamManager extends Component
 {
-    public $exams;
-    public $examId, $title, $category, $sub_category, $duration, $is_active = true;
-    public $isEdit = false;
-    public $isManagingQuestions = false;
-    public $selectedSubTestId = null;
-    public $questionsList = [];
+    public $course_id = null;
+    public $title = '';
+    public $description = '';
+    public $duration_minutes = 90;
+    public $token = '';
+    public $start_time = '';
+    public $end_time = '';
+    public $randomize_questions = false;
     
-    // Question Editing State
-    public $editingQuestionId = null;
-    public $editQuestionText = '';
-    public $editExplanation = '';
-    public $editOptions = []; // Array of ['id' => ..., 'text' => ..., 'point' => ...]
+    public $selectedExamId = null;
+    public $isEditing = false;
+    public $filterCourseId = 'all';
 
-    public function mount()
+    public function mount(): void
     {
-        $this->loadExams();
-    }
+        $this->generateToken();
+        $this->start_time = now()->format('Y-m-d\TH:i');
+        $this->duration_minutes = 90;
+        $this->updateEndTime();
 
-    public function loadExams()
-    {
-        $this->exams = Exam::orderBy('created_at', 'desc')->get();
-    }
-
-    public function resetFields()
-    {
-        $this->title = '';
-        $this->category = 'TPS';
-        $this->sub_category = '';
-        $this->duration = 0;
-        $this->is_active = true;
-        $this->isEdit = false;
-        $this->examId = null;
-    }
-
-    public function store()
-    {
-        $this->validate([
-            'title' => 'required',
-            'category' => 'required',
-            'duration' => 'required|integer',
-        ]);
-
-        $exam = Exam::updateOrCreate(['id' => $this->examId], [
-            'title' => $this->title,
-            'category' => $this->category,
-            'sub_category' => $this->sub_category,
-            'duration' => $this->duration,
-            'is_active' => $this->is_active,
-        ]);
-
-        // Auto-create/update SubTest if sub_category is defined (for individual subject exams)
-        if ($this->sub_category) {
-            \App\Models\SubTest::updateOrCreate(
-                ['exam_id' => $exam->id],
-                [
-                    'title' => $this->sub_category,
-                    'duration' => $this->duration,
-                    'sort_order' => 1
-                ]
-            );
-        }
-
-        $this->dispatch('play-sfx', type: 'success');
-        session()->flash('message', $this->examId ? 'Exam Updated.' : 'Exam Created.');
-        $this->resetFields();
-        $this->loadExams();
-    }
-
-    public function edit($id)
-    {
-        $exam = Exam::findOrFail($id);
-        $this->examId = $id;
-        $this->title = $exam->title;
-        $this->category = $exam->category;
-        $this->sub_category = $exam->sub_category;
-        $this->duration = $exam->duration;
-        $this->is_active = $exam->is_active;
-        $this->isEdit = true;
-    }
-
-    public function delete($id)
-    {
-        Exam::find($id)->delete();
-        $this->loadExams();
-    }
-
-    public function recalculateIRT($id)
-    {
-        \App\Services\IRTService::recalculateWeights($id);
-        session()->flash('message', 'Penilaian IRT telah dikalkulasi ulang untuk exam ini.');
-    }
-
-    public function openQuestionManager($examId)
-    {
-        $this->examId = $examId;
-        $this->isManagingQuestions = true;
-        $this->selectedSubTestId = \App\Models\SubTest::where('exam_id', $examId)->first()?->id;
-        $this->loadQuestions();
-    }
-
-    public function loadQuestions()
-    {
-        if ($this->selectedSubTestId) {
-            $this->questionsList = \App\Models\Question::where('sub_test_id', $this->selectedSubTestId)->get();
-        } else {
-            $this->questionsList = [];
+        $firstCourse = Course::first();
+        if ($firstCourse) {
+            $this->course_id = $firstCourse->id;
         }
     }
 
-    public function deleteQuestion($id)
+    public function updated($property): void
     {
-        \App\Models\Question::find($id)->delete();
-        $this->loadQuestions();
-        $this->dispatch('play-sfx', type: 'delete');
-    }
-
-    public function editQuestion($id)
-    {
-        $q = \App\Models\Question::with('options')->findOrFail($id);
-        $this->editingQuestionId = $id;
-        $this->editQuestionText = $q->text;
-        $this->editExplanation = $q->explanation;
-        
-        $this->editOptions = [];
-        foreach ($q->options as $opt) {
-            $this->editOptions[] = [
-                'id' => $opt->id,
-                'text' => $opt->text,
-                'point' => $opt->point,
-            ];
+        if (in_array($property, ['duration_minutes', 'start_time'])) {
+            $this->updateEndTime();
         }
-
-        $this->dispatch('play-sfx', type: 'click');
     }
 
-    public function cancelEditQuestion()
+    public function updateEndTime(): void
     {
-        $this->editingQuestionId = null;
-        $this->editQuestionText = '';
-        $this->editExplanation = '';
-        $this->editOptions = [];
-    }
-
-    public function saveQuestion()
-    {
-        $q = \App\Models\Question::findOrFail($this->editingQuestionId);
-        $q->update([
-            'text' => $this->editQuestionText,
-            'explanation' => $this->editExplanation,
-        ]);
-
-        // Save Options
-        foreach ($this->editOptions as $optData) {
-            if (isset($optData['id'])) {
-                \App\Models\Option::where('id', $optData['id'])->update([
-                    'text' => $optData['text'],
-                    'point' => $optData['point'],
-                ]);
+        if (!empty($this->start_time) && is_numeric($this->duration_minutes)) {
+            try {
+                $start = Carbon::parse($this->start_time);
+                $this->end_time = $start->copy()->addMinutes((int)$this->duration_minutes)->format('Y-m-d\TH:i');
+            } catch (\Throwable $e) {
+                // Ignore parse errors
             }
         }
-
-        session()->flash('question_message', 'Pertanyaan & Pilihan Jawaban berhasil diperbarui.');
-        $this->cancelEditQuestion();
-        $this->loadQuestions();
-        $this->dispatch('play-sfx', type: 'success');
     }
 
-    public function deleteAllInSubTest()
+    public function generateToken(): void
     {
-        if ($this->selectedSubTestId) {
-            \App\Models\Question::where('sub_test_id', $this->selectedSubTestId)->delete();
-            $this->loadQuestions();
-            $this->dispatch('play-sfx', type: 'delete');
-            session()->flash('message', 'Semua soal di materi ini telah dihapus.');
+        $this->token = strtoupper(Str::random(6));
+    }
+
+    public function resetFields(): void
+    {
+        $this->title = '';
+        $this->description = '';
+        $this->duration_minutes = 90;
+        $this->generateToken();
+        $this->start_time = now()->format('Y-m-d\TH:i');
+        $this->updateEndTime();
+        $this->randomize_questions = false;
+        $this->selectedExamId = null;
+        $this->isEditing = false;
+
+        $firstCourse = Course::first();
+        if ($firstCourse) {
+            $this->course_id = $firstCourse->id;
         }
     }
 
-    public function closeQuestionManager()
+    public function saveExam(): void
     {
-        $this->isManagingQuestions = false;
+        $this->validate([
+            'course_id' => 'required|exists:courses,id',
+            'title' => 'required|string|max:255',
+            'duration_minutes' => 'required|numeric|min:15|max:300',
+            'token' => 'required|string|max:10',
+            'start_time' => 'required|date',
+            'end_time' => 'required|date|after:start_time',
+        ]);
+
+        $course = Course::findOrFail($this->course_id);
+
+        Exam::updateOrCreate(
+            ['id' => $this->selectedExamId],
+            [
+                'course_id' => $this->course_id,
+                'lecturer_id' => $course->lecturer_id ?? Auth::id(),
+                'title' => $this->title,
+                'description' => $this->description,
+                'duration_minutes' => $this->duration_minutes,
+                'token' => strtoupper($this->token),
+                'start_time' => $this->start_time,
+                'end_time' => $this->end_time,
+                'randomize_questions' => $this->randomize_questions,
+            ]
+        );
+
+        session()->flash('message', $this->isEditing ? 'Sesi UTS berhasil diperbarui!' : 'Sesi UTS berhasil dibuat!');
         $this->resetFields();
     }
 
-    public function updatedSelectedSubTestId()
+    public function editExam(int $id): void
     {
-        $this->loadQuestions();
+        $exam = Exam::findOrFail($id);
+        $this->selectedExamId = $exam->id;
+        $this->course_id = $exam->course_id;
+        $this->title = $exam->title;
+        $this->description = $exam->description;
+        $this->duration_minutes = $exam->duration_minutes;
+        $this->token = $exam->token;
+        $this->start_time = $exam->start_time ? $exam->start_time->format('Y-m-d\TH:i') : '';
+        $this->end_time = $exam->end_time ? $exam->end_time->format('Y-m-d\TH:i') : '';
+        $this->randomize_questions = $exam->randomize_questions;
+        $this->isEditing = true;
+    }
+
+    public function deleteExam(int $id): void
+    {
+        Exam::destroy($id);
+        session()->flash('message', 'Sesi UTS berhasil dihapus!');
     }
 
     public function render()
     {
-        return view('livewire.admin.exam-manager')->layout('layouts.app');
+        $examsQuery = Exam::with(['course', 'lecturer'])
+            ->withCount(['questions', 'results']);
+
+        if ($this->filterCourseId !== 'all') {
+            $examsQuery->where('course_id', $this->filterCourseId);
+        }
+
+        $exams = $examsQuery->latest()->get();
+        $courses = Course::all();
+
+        return view('livewire.admin.exam-manager', [
+            'exams' => $exams,
+            'courses' => $courses,
+        ]);
     }
 }

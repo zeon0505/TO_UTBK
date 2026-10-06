@@ -1,102 +1,146 @@
 <?php
-// b7439651-a26c-4cf4-b85f-a47e78b44bcf
 
 namespace App\Livewire\Admin;
 
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 use App\Models\User;
-use Livewire\WithPagination;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
+#[Layout('layouts.app')]
 class UserMonitor extends Component
 {
-    use WithPagination;
-    protected $paginationTheme = 'bootstrap';
+    public string $search = '';
+    public string $roleFilter = 'all';
 
-    public $search = '';
-    public $editingUserId = null;
-    public $editingName = '';
-    public $editingEmail = '';
-    public $editingSchool = '';
-    public $editingPassword = '';
+    public ?int $selectedUserId = null;
+    public string $name = '';
+    public string $email = '';
+    public string $role = 'mahasiswa';
+    public ?string $nim = '';
+    public ?string $nip = '';
+    public ?string $prodi = 'Teknik Informatika';
+    public ?int $semester = 5;
+    public ?string $kelas = 'TI-5A';
+    public string $password = '';
+    public bool $isEditing = false;
 
-    public function deleteUser($id)
+    public function mount(): void
     {
-        if ($id === auth()->id()) {
-            session()->flash('error', 'Anda tidak bisa menghapus akun Anda sendiri.');
-            return;
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+        if ($currentUser && $currentUser->prodi) {
+            $this->prodi = $currentUser->prodi;
         }
-
-        User::find($id)->delete();
-        session()->flash('success', 'User berhasil dihapus.');
     }
 
-    public function editUser($id)
+    public function resetFields(): void
+    {
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+        $this->selectedUserId = null;
+        $this->name = '';
+        $this->email = '';
+        $this->role = 'mahasiswa';
+        $this->nim = '';
+        $this->nip = '';
+        $this->prodi = ($currentUser && $currentUser->prodi) ? $currentUser->prodi : 'Teknik Informatika';
+        $this->semester = 5;
+        $this->kelas = 'TI-5A';
+        $this->password = '';
+        $this->isEditing = false;
+    }
+
+    public function editUser(int $id): void
     {
         $user = User::findOrFail($id);
-        $this->editingUserId = $user->id;
-        $this->editingName = $user->name;
-        $this->editingEmail = $user->email;
-        $this->editingSchool = $user->school;
-        $this->editingPassword = ''; 
+        $this->selectedUserId = $user->id;
+        $this->name = $user->name;
+        $this->email = $user->email;
+        $this->role = $user->role;
+        $this->nim = $user->nim;
+        $this->nip = $user->nip;
+        $this->prodi = $user->prodi;
+        $this->semester = $user->semester;
+        $this->kelas = $user->kelas;
+        $this->isEditing = true;
     }
 
-    public function updateUser()
+    public function saveUser(): void
     {
-        $this->validate([
-            'editingName' => 'required',
-            'editingEmail' => 'required|email|unique:users,email,' . $this->editingUserId,
-            'editingSchool' => 'required',
-        ]);
+        $rules = [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $this->selectedUserId,
+            'role' => 'required|in:superadmin,admin,dosen,mahasiswa',
+        ];
 
-        $user = User::find($this->editingUserId);
-        $user->update([
-            'name' => $this->editingName,
-            'email' => $this->editingEmail,
-            'school' => $this->editingSchool,
-        ]);
-
-        if (!empty($this->editingPassword)) {
-            $user->password = \Illuminate\Support\Facades\Hash::make($this->editingPassword);
-            $user->save();
+        if ($this->password) {
+            $rules['password'] = 'min:6';
         }
 
-        session()->flash('success', 'Data user berhasil diperbarui.');
-        $this->editingUserId = null;
+        $this->validate($rules);
+
+        $data = [
+            'name' => $this->name,
+            'email' => $this->email,
+            'role' => $this->role,
+            'is_admin' => in_array($this->role, ['superadmin', 'admin']),
+            'nim' => $this->role === 'mahasiswa' ? $this->nim : null,
+            'nip' => in_array($this->role, ['dosen', 'admin', 'superadmin']) ? $this->nip : null,
+            'prodi' => $this->prodi,
+            'semester' => $this->role === 'mahasiswa' ? $this->semester : null,
+            'kelas' => $this->role === 'mahasiswa' ? $this->kelas : null,
+        ];
+
+        if ($this->password) {
+            $data['password'] = Hash::make($this->password);
+        }
+
+        User::updateOrCreate(['id' => $this->selectedUserId], $data);
+
+        session()->flash('message', $this->isEditing ? 'Data pengguna berhasil diperbarui!' : 'Pengguna baru berhasil ditambahkan!');
+        $this->resetFields();
     }
 
-    public function cancelEdit()
+    public function deleteUser(int $id): void
     {
-        $this->editingUserId = null;
-    }
-
-    public function toggleAdmin($id)
-    {
-        if ($id === auth()->id()) {
-            session()->flash('error', 'Anda tidak bisa mengubah status admin diri Anda sendiri.');
+        if ($id == Auth::id()) {
+            session()->flash('error', 'Anda tidak dapat menghapus akun Anda sendiri!');
             return;
         }
 
-        $user = User::find($id);
-        $user->is_admin = !$user->is_admin;
-        $user->save();
-
-        $status = $user->is_admin ? 'Admin baru ditambahkan.' : 'Status Admin dicabut.';
-        session()->flash('success', $status);
+        User::destroy($id);
+        session()->flash('message', 'Pengguna berhasil dihapus!');
     }
 
     public function render()
     {
-        $users = User::where('name', 'like', '%' . $this->search . '%')
-            ->orWhere('email', 'like', '%' . $this->search . '%')
-            ->latest()
-            ->paginate(10);
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+        $query = User::query();
+
+        if ($currentUser && $currentUser->prodi) {
+            $query->where('prodi', $currentUser->prodi);
+        }
+
+        if ($this->search) {
+            $query->where(function($q) {
+                $q->where('name', 'like', '%' . $this->search . '%')
+                  ->orWhere('email', 'like', '%' . $this->search . '%')
+                  ->orWhere('nim', 'like', '%' . $this->search . '%')
+                  ->orWhere('nip', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        if ($this->roleFilter !== 'all') {
+            $query->where('role', $this->roleFilter);
+        }
+
+        $users = $query->latest()->get();
 
         return view('livewire.admin.user-monitor', [
             'users' => $users,
-            'totalUsers' => User::count(),
-            'recentUsers' => User::where('created_at', '>=', now()->subDays(1))->count(),
-            'totalFinishedExams' => \App\Models\Result::whereNotNull('finished_at')->count(),
-            'avgGlobalScore' => \App\Models\Result::whereNotNull('finished_at')->avg('total_score') ?? 0,
-        ])->layout('layouts.app');
+        ]);
     }
 }
