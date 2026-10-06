@@ -459,21 +459,31 @@
             if (!['INPUT','TEXTAREA'].includes(e.target.tagName)) e.preventDefault();
         });
 
-        // 5. DevTools & Split Screen / Multi-window inspection
-        var initialWidth = window.innerWidth;
-        window.addEventListener('resize', function() {
+        // 5. DevTools & Window Unmaximize / Shrink / Split Screen inspection
+        function checkWindowSize() {
             if (window.__examEnd) return;
+
             // Check DevTools side dock
             var widthDiff = window.outerWidth - window.innerWidth;
             var heightDiff = window.outerHeight - window.innerHeight;
             if (widthDiff > 200 || heightDiff > 200) {
                 triggerViol('membuka Developer Tools / Inspector');
+                return;
             }
-            // Check Split-Screen on mobile / small window shift
-            if (window.innerWidth < initialWidth * 0.65 && window.innerWidth < 500) {
-                triggerViol('deteksi layar terbagi (Split Screen / Layar Ganda)');
+
+            // Check if window is unmaximized, resized down, or in split screen
+            var screenAvailW = window.screen.availWidth || window.screen.width;
+            var screenAvailH = window.screen.availHeight || window.screen.height;
+
+            if (screenAvailW && screenAvailH) {
+                if (window.outerWidth < screenAvailW - 80 || window.outerHeight < screenAvailH - 120) {
+                    triggerViol('mengecilkan / mengubah ukuran jendela browser (Harus Layar Maksimal)');
+                }
             }
-        });
+        }
+
+        window.addEventListener('resize', checkWindowSize);
+        setInterval(checkWindowSize, 1500);
 
         // 6. Fullscreen enforcement & exit monitoring
         function requestExamFullscreen() {
