@@ -45,3 +45,9 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('login');
     })->name('logout');
 });
+
+// Clear login animation flag after dashboard loads
+Route::post('/clear-login-flag', function () {
+    session()->forget('just_logged_in');
+    return response()->noContent();
+})->middleware('auth')->name('clear.login.flag');

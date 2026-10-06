@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'Portal Ujian Tengah Semester (UTS)' }}</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
     @livewireStyles
@@ -29,6 +30,16 @@
         .theme-dark .sidebar-link:hover { background-color: #2d2d44 !important; }
         .theme-dark .sidebar-item.active > .sidebar-link { background-color: #435ebe !important; }
         .pointer { cursor: pointer; }
+
+        /* Login entrance animation */
+        @keyframes loginZoomIn {
+            0%   { opacity: 0; transform: scale(0.92) translateY(16px); }
+            60%  { opacity: 1; transform: scale(1.01) translateY(-3px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .login-entrance {
+            animation: loginZoomIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
     </style>
 </head>
 <body x-data="{ 
@@ -146,7 +157,7 @@
                 </div>
             </header>
             
-            <div id="main-content">
+            <div id="main-content" class="{{ session('just_logged_in') ? 'login-entrance' : '' }}">
                 <div class="container-fluid">
                     {{ $slot }}
                 </div>
@@ -168,5 +179,11 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     @livewireScripts
+    @if(session('just_logged_in'))
+    <script>
+        // Remove the just_logged_in session flag after animation plays
+        fetch('/clear-login-flag', { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' } }).catch(() => {});
+    </script>
+    @endif
 </body>
 </html>
