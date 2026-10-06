@@ -69,13 +69,22 @@
         <!-- Input Form Section -->
         <div class="col-lg-6">
             @if($mode === 'single')
-            <!-- Form Manual -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-transparent py-3">
-                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-plus-circle-fill text-primary me-2"></i>Form Input Soal UTS Manual</h5>
+            <!-- Form Manual / Edit -->
+            <div class="card border-0 shadow-sm {{ $editingQuestionId ? 'border-start border-4 border-warning' : '' }}">
+                <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                    @if($editingQuestionId)
+                        <h5 class="card-title mb-0 fw-bold text-warning">
+                            <i class="bi bi-pencil-fill me-2"></i>Edit Soal #{{ $editingQuestionId }}
+                        </h5>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="cancelEdit">
+                            <i class="bi bi-x-lg me-1"></i>Batal Edit
+                        </button>
+                    @else
+                        <h5 class="card-title mb-0 fw-bold"><i class="bi bi-plus-circle-fill text-primary me-2"></i>Form Input Soal UTS Manual</h5>
+                    @endif
                 </div>
                 <div class="card-body">
-                    <form wire:submit.prevent="saveSingleQuestion">
+                    <form wire:submit.prevent="{{ $editingQuestionId ? 'updateQuestion' : 'saveSingleQuestion' }}">
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Tipe Soal</label>
@@ -124,9 +133,20 @@
                             <textarea class="form-control" wire:model="explanation" rows="2" placeholder="Catatan pembahasan atau poin rubrik penilaian..."></textarea>
                         </div>
 
+                        @if($editingQuestionId)
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-warning fw-bold flex-grow-1 py-2 shadow-sm">
+                                <i class="bi bi-save-fill me-2"></i>Simpan Perubahan
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary fw-bold px-4" wire:click="cancelEdit">
+                                <i class="bi bi-x-lg"></i> Batal
+                            </button>
+                        </div>
+                        @else
                         <button type="submit" class="btn btn-primary fw-bold w-100 py-2.5 shadow-sm">
                             <i class="bi bi-save-fill me-2"></i>Simpan Soal ke UTS
                         </button>
+                        @endif
                     </form>
                 </div>
             </div>
@@ -196,9 +216,14 @@
                                     @endif
                                     <span class="badge bg-success ms-1">Bobot: {{ number_format($q->weight, 1) }}</span>
                                 </div>
-                                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="confirm('Hapus soal ini?') || event.stopImmediatePropagation()" wire:click="deleteQuestion({{ $q->id }})" title="Hapus Soal">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-outline-warning py-0 px-2" wire:click="loadQuestionForEdit({{ $q->id }})" title="Edit Soal">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="confirm('Hapus soal ini?') || event.stopImmediatePropagation()" wire:click="deleteQuestion({{ $q->id }})" title="Hapus Soal">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
                             </div>
 
                             <p class="fw-semibold mb-2 text-dark" style="white-space: pre-line;">{{ $q->question_text }}</p>

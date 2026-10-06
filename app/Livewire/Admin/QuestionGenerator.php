@@ -43,6 +43,9 @@ class QuestionGenerator extends Component
     // Bulk Paste Fields
     public string $bulkText = '';
 
+    // Edit mode
+    public ?int $editingQuestionId = null;
+
     public function mount()
     {
         $examId = request()->query('exam_id');
@@ -128,6 +131,75 @@ class QuestionGenerator extends Component
         $this->correctOptionIndex = 0;
 
         session()->flash('success', 'Soal UTS berhasil ditambahkan!');
+    }
+
+    public function loadQuestionForEdit(int $id)
+    {
+        $q = Question::with('options')->findOrFail($id);
+        $this->editingQuestionId = $id;
+        $this->questionType = $q->type;
+        $this->questionText = $q->question_text;
+        $this->weight = $q->weight;
+        $this->explanation = $q->explanation ?? '';
+        $this->mode = 'single';
+
+        if ($q->type === 'multiple_choice') {
+            $this->options = $q->options->map(fn($o) => [
+                'text' => $o->option_text,
+                'is_correct' => (bool) $o->is_correct,
+            ])->toArray();
+            $this->correctOptionIndex = collect($this->options)->search(fn($o) => $o['is_correct'] === true) ?: 0;
+        } else {
+            $this->options = [];
+        }
+    }
+
+    public function updateQuestion()
+    {
+        $this->validate([
+            'questionText' => 'required|string',
+            'weight' => 'required|numeric|min:0.5|max:100',
+        ]);
+
+        $q = Question::findOrFail($this->editingQuestionId);
+        $q->update([
+            'type' => $this->questionType,
+            'question_text' => $this->questionText,
+            'weight' => $this->weight,
+            'explanation' => $this->explanation,
+        ]);
+
+        if ($this->questionType === 'multiple_choice') {
+            // Delete existing options and recreate
+            $q->options()->delete();
+            foreach ($this->options as $index => $opt) {
+                if (empty(trim($opt['text']))) continue;
+                Option::create([
+                    'question_id' => $q->id,
+                    'option_text' => $opt['text'],
+                    'is_correct' => ($index === (int)$this->correctOptionIndex),
+                ]);
+            }
+        }
+
+        $this->cancelEdit();
+        session()->flash('success', 'Soal berhasil diperbarui!');
+    }
+
+    public function cancelEdit()
+    {
+        $this->editingQuestionId = null;
+        $this->questionText = '';
+        $this->explanation = '';
+        $this->weight = 10.0;
+        $this->options = [
+            ['text' => '', 'is_correct' => true],
+            ['text' => '', 'is_correct' => false],
+            ['text' => '', 'is_correct' => false],
+            ['text' => '', 'is_correct' => false],
+            ['text' => '', 'is_correct' => false],
+        ];
+        $this->correctOptionIndex = 0;
     }
 
     public function generateWithAI()
