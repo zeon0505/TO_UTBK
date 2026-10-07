@@ -51,7 +51,7 @@ class ExamControl extends Component
                 abort(403, "Maaf, Ujian UTS ini khusus untuk Mahasiswa Program Studi {$this->exam->course->prodi}.");
             }
             if ($user->semester && $this->exam->course && $this->exam->course->semester && (int)$user->semester !== (int)$this->exam->course->semester) {
-                abort(403, "Maaf, Ujian UTS ini khusus untuk Mahasiswa Semester {$this->exam->course->semester}.");
+                abort(403, "Maaf, Ujian UTS ini khusus untuk Mahasiswa Semester {$this->exam->course->semester} ({$this->exam->course->name}). Akun Anda terdaftar di Semester {$user->semester}.");
             }
         }
 
@@ -72,6 +72,19 @@ class ExamControl extends Component
         if (strtoupper(trim($this->tokenInput)) !== strtoupper($this->exam->token)) {
             $this->tokenError = 'Kode Token UTS salah! Silakan tanyakan kepada dosen pengampu.';
             return;
+        }
+
+        /** @var User $user */
+        $user = Auth::user();
+        if ($user && $user->isMahasiswa()) {
+            if ($user->prodi && $this->exam->course && $this->exam->course->prodi && $user->prodi !== $this->exam->course->prodi) {
+                $this->tokenError = "🚫 Ujian ini khusus untuk Program Studi {$this->exam->course->prodi}!";
+                return;
+            }
+            if ($user->semester && $this->exam->course && $this->exam->course->semester && (int)$user->semester !== (int)$this->exam->course->semester) {
+                $this->tokenError = "🚫 Token ini untuk Ujian Semester {$this->exam->course->semester} ({$this->exam->course->name})! Akun Anda terdaftar di Semester {$user->semester}.";
+                return;
+            }
         }
 
         $this->showTokenModal = false;
@@ -255,12 +268,15 @@ class ExamControl extends Component
         }
 
         $totalExamMaxWeight = $this->exam->questions->sum('weight');
+        $pgMaxWeight = $this->exam->questions->where('type', 'multiple_choice')->sum('weight');
+        $pgScore = ($pgMaxWeight > 0) ? ($totalPgScore / $pgMaxWeight) * 100 : 0;
         $initialScore = ($totalExamMaxWeight > 0) ? ($totalPgScore / $totalExamMaxWeight) * 100 : 0;
 
         $this->result->update([
             'submitted_at' => now(),
             'score' => round($initialScore, 2),
             'total_correct_pg' => $totalCorrectPg,
+            'total_pg_score' => round($pgScore, 2),
             'is_graded' => !$hasEssay, // If no essay, automatically fully graded!
         ]);
 

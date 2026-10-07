@@ -76,10 +76,17 @@ class ExamGrading extends Component
         $rawTotal = $totalPgScore + $totalEssayScore;
         $finalScore = ($totalExamMaxWeight > 0) ? ($rawTotal / $totalExamMaxWeight) * 100 : 0;
 
+        // Calculate individual PG and Essay scores as percentage of total exam max weight
+        $pgMaxWeight = Question::where('exam_id', $this->examId)->where('type', 'multiple_choice')->sum('weight');
+        $essayMaxWeight = Question::where('exam_id', $this->examId)->where('type', 'essay')->sum('weight');
+        $pgScorePct = ($pgMaxWeight > 0) ? ($totalPgScore / $pgMaxWeight) * 100 : 0;
+        $essayScorePct = ($essayMaxWeight > 0) ? ($totalEssayScore / $essayMaxWeight) * 100 : 0;
+
         $result->update([
             'score' => round($finalScore, 2),
             'total_correct_pg' => UserAnswer::where('exam_id', $this->examId)->where('user_id', $result->user_id)->whereHas('selectedOption', fn($q) => $q->where('is_correct', true))->count(),
-            'total_essay_score' => $totalEssayScore,
+            'total_pg_score' => round($pgScorePct, 2),
+            'total_essay_score' => round($essayScorePct, 2),
             'is_graded' => true,
         ]);
 

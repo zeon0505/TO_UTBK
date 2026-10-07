@@ -48,7 +48,7 @@ class Dashboard extends Component
             return;
         }
 
-        $exam = Exam::where('token', $token)->first();
+        $exam = Exam::with('course')->where('token', $token)->first();
 
         if (!$exam) {
             $this->errorMessage = 'Token UTS tidak valid atau tidak ditemukan!';
@@ -58,12 +58,12 @@ class Dashboard extends Component
         /** @var User $user */
         $user = Auth::user();
         if ($user && $user->isMahasiswa()) {
-            if ($user->prodi && $exam->course->prodi && $user->prodi !== $exam->course->prodi) {
-                $this->errorMessage = "Token UTS ini hanya berlaku untuk Prodi {$exam->course->prodi}!";
+            if ($user->prodi && $exam->course && $exam->course->prodi && $user->prodi !== $exam->course->prodi) {
+                $this->errorMessage = "🚫 Gagal Akses: Token UTS ini khusus untuk Program Studi {$exam->course->prodi}!";
                 return;
             }
-            if ($user->semester && $exam->course->semester && (int)$user->semester !== (int)$exam->course->semester) {
-                $this->errorMessage = "Token UTS ini hanya berlaku untuk Semester {$exam->course->semester}!";
+            if ($user->semester && $exam->course && $exam->course->semester && (int)$user->semester !== (int)$exam->course->semester) {
+                $this->errorMessage = "🚫 Gagal Akses: Token UTS ini untuk Ujian Semester {$exam->course->semester} ({$exam->course->name})! Akun Anda berada di Semester {$user->semester}.";
                 return;
             }
         }

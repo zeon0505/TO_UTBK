@@ -14,6 +14,7 @@ class Result extends Model
         'exam_id',
         'score',
         'total_correct_pg',
+        'total_pg_score',
         'total_essay_score',
         'is_graded',
         'violations_count',
@@ -26,6 +27,22 @@ class Result extends Model
         'started_at' => 'datetime',
         'submitted_at' => 'datetime',
     ];
+
+    /**
+     * Accessor: Nilai PG (disimpan terpisah dalam skala 0-100).
+     */
+    public function getMcScoreAttribute(): float
+    {
+        return (float) ($this->total_pg_score ?? 0);
+    }
+
+    /**
+     * Accessor: Nilai Essay (dalam skala 0-100).
+     */
+    public function getEssayScoreAttribute(): float
+    {
+        return (float) ($this->total_essay_score ?? 0);
+    }
 
     public function user()
     {
