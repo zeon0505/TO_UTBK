@@ -102,6 +102,7 @@
                             </a>
                         </li>
 
+                        @if(auth()->check() && (auth()->user()->isDosen() || auth()->user()->isAdmin()))
                         <!-- Collapsible Kategori Semester Dropdown -->
                         <li class="sidebar-item" x-data="{ open: {{ request()->has('semester') ? 'true' : 'false' }} }">
                             <a href="#" @click.prevent="open = !open" class='sidebar-link d-flex align-items-center justify-content-between me-2'>
@@ -128,6 +129,7 @@
                                 </ul>
                             </div>
                         </li>
+                        @endif
 
                         @if(auth()->check() && (auth()->user()->isDosen() || auth()->user()->isAdmin()))
                         <li class="sidebar-title mt-4 mb-2 opacity-50 text-uppercase small">Manajemen Dosen</li>
