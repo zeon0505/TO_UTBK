@@ -136,16 +136,39 @@ class Dashboard extends Component
                 });
             }
 
-            $studentResults = $resultsQuery->latest()->get();
+            $studentResults = $resultsQuery->where('is_practice', false)->latest()->get();
+
+            // ===== STATISTIK DASHBOARD =====
+            // Distribusi nilai (A, B, C, D, E)
+            $allGradedResults = Result::whereHas('exam.course', fn($q) => $user->prodi ? $q->where('prodi', $user->prodi) : $q)
+                ->where('is_graded', true)
+                ->where('is_practice', false)
+                ->get();
+
+            $gradeDistribution = [
+                'A' => $allGradedResults->where('score', '>=', 85)->count(),
+                'B' => $allGradedResults->whereBetween('score', [70, 84.99])->count(),
+                'C' => $allGradedResults->whereBetween('score', [60, 69.99])->count(),
+                'D' => $allGradedResults->whereBetween('score', [50, 59.99])->count(),
+                'E' => $allGradedResults->where('score', '<', 50)->count(),
+            ];
+
+            // Rata-rata nilai per exam (5 terbaru)
+            $avgPerExam = $latestExams->map(function($ex) {
+                $avg = Result::where('exam_id', $ex->id)->where('is_practice', false)->where('is_graded', true)->avg('score');
+                return ['label' => $ex->course->code ?? 'MK', 'avg' => round($avg ?? 0, 1)];
+            })->take(5);
 
             return view('livewire.dashboard', [
-                'coursesCount' => $coursesCount,
-                'examsCount' => $examsCount,
-                'studentsCount' => $studentsCount,
+                'coursesCount'       => $coursesCount,
+                'examsCount'         => $examsCount,
+                'studentsCount'      => $studentsCount,
                 'pendingGradingCount' => $pendingGradingCount,
-                'latestExams' => $latestExams,
-                'studentResults' => $studentResults,
-                'coursesList' => $coursesList,
+                'latestExams'        => $latestExams,
+                'studentResults'     => $studentResults,
+                'coursesList'        => $coursesList,
+                'gradeDistribution'  => $gradeDistribution,
+                'avgPerExam'         => $avgPerExam,
             ]);
         }
 

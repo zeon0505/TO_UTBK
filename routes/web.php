@@ -26,6 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
     Route::get('/profile', ProfileSettings::class)->name('profile');
     Route::get('/exam/{examId}', ExamControl::class)->name('exam.show');
+    Route::get('/exam/{examId}/practice', ExamControl::class)->name('exam.practice');
     Route::get('/exam/{examId}/result', ExamResult::class)->name('exam.result');
     
     // Dosen & Admin Routes

@@ -19,7 +19,7 @@ class ExamControl extends Component
     public mixed $questions = null;
     public int $currentQuestionIndex = 0;
     public ?Question $currentQuestion = null;
-    
+
     // Student Answer State
     public ?int $selectedOptionId = null;
     public string $essayAnswer = '';
@@ -35,16 +35,22 @@ class ExamControl extends Component
     public int $violationsCount = 0;
     public bool $isFinished = false;
 
+    // Mode Latihan
+    public bool $isPracticeMode = false;
+
     protected $listeners = [
-        'autoSubmitExam' => 'finishExam',
+        'autoSubmitExam'       => 'finishExam',
         'recordSecurityViolation' => 'recordViolation'
     ];
 
     public function mount(int|string $examId): void
     {
         $this->exam = Exam::with(['course', 'questions.options'])->findOrFail($examId);
-        
-        /** @var User $user */
+
+        // Deteksi mode latihan dari nama route
+        $this->isPracticeMode = request()->routeIs('exam.practice');
+
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         if ($user && $user->isMahasiswa()) {
             if ($user->prodi && $this->exam->course && $this->exam->course->prodi && $user->prodi !== $this->exam->course->prodi) {
@@ -55,8 +61,33 @@ class ExamControl extends Component
             }
         }
 
+        // Mode latihan: langsung mulai tanpa token, is_practice = true
+        if ($this->isPracticeMode) {
+            $this->showTokenModal = false;
+            $this->result = Result::where('user_id', Auth::id())
+                ->where('exam_id', $this->exam->id)
+                ->where('is_practice', true)
+                ->whereNull('submitted_at')
+                ->first();
+
+            if (!$this->result) {
+                $this->result = Result::create([
+                    'user_id'    => Auth::id(),
+                    'exam_id'    => $this->exam->id,
+                    'started_at' => now(),
+                    'score'      => 0,
+                    'is_graded'  => false,
+                    'is_practice' => true,
+                    'violations_count' => 0,
+                ]);
+            }
+            $this->initExamSession();
+            return;
+        }
+
         $this->result = Result::where('user_id', Auth::id())
             ->where('exam_id', $this->exam->id)
+            ->where('is_practice', false)
             ->first();
 
         if (!$this->result) {
@@ -74,7 +105,18 @@ class ExamControl extends Component
             return;
         }
 
-        /** @var User $user */
+        // Cek apakah token masih dalam rentang waktu ujian
+        $now = now();
+        if ($this->exam->start_time && $now->lt($this->exam->start_time)) {
+            $this->tokenError = '⏳ Ujian belum dimulai! Ujian dibuka pada ' . $this->exam->start_time->format('d M Y, H:i') . ' WIB.';
+            return;
+        }
+        if ($this->exam->end_time && $now->gt($this->exam->end_time)) {
+            $this->tokenError = '🔒 Waktu ujian sudah berakhir pada ' . $this->exam->end_time->format('d M Y, H:i') . ' WIB. Token tidak dapat digunakan lagi.';
+            return;
+        }
+
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         if ($user && $user->isMahasiswa()) {
             if ($user->prodi && $this->exam->course && $this->exam->course->prodi && $user->prodi !== $this->exam->course->prodi) {
@@ -88,13 +130,14 @@ class ExamControl extends Component
         }
 
         $this->showTokenModal = false;
-        
+
         $this->result = Result::create([
-            'user_id' => Auth::id(),
-            'exam_id' => $this->exam->id,
+            'user_id'    => Auth::id(),
+            'exam_id'    => $this->exam->id,
             'started_at' => now(),
-            'score' => 0,
-            'is_graded' => false,
+            'score'      => 0,
+            'is_graded'  => false,
+            'is_practice' => false,
             'violations_count' => 0,
         ]);
 
@@ -104,6 +147,8 @@ class ExamControl extends Component
     public function recordViolation()
     {
         if (!$this->result || $this->result->submitted_at) return;
+        // Mode latihan tidak kena pelanggaran
+        if ($this->isPracticeMode) return;
 
         $this->violationsCount++;
         $this->result->increment('violations_count');
@@ -127,8 +172,9 @@ class ExamControl extends Component
         // If started_at is null (was reset by admin), re-start session fresh now
         if (!$this->result->started_at) {
             $this->result->update([
-                'started_at' => now(),
-                'violations_count' => 0
+                'started_at'      => now(),
+                'violations_count' => 0,
+                'question_order'  => null,
             ]);
             $this->result->refresh();
         }
@@ -136,11 +182,11 @@ class ExamControl extends Component
         $this->violationsCount = (int)($this->result->violations_count ?? 0);
 
         // Calculate accurate time left
-        $startedAt = Carbon::parse($this->result->started_at);
+        $startedAt      = Carbon::parse($this->result->started_at);
         $allowedSeconds = (int)($this->exam->duration_minutes * 60);
-        $now = now();
-        
-        $elapsedSeconds = $startedAt->greaterThan($now) ? 0 : (int)$now->diffInSeconds($startedAt);
+        $now            = now();
+
+        $elapsedSeconds       = $startedAt->greaterThan($now) ? 0 : (int)$now->diffInSeconds($startedAt);
         $this->timeLeftSeconds = max(0, $allowedSeconds - $elapsedSeconds);
 
         if ($this->timeLeftSeconds <= 0) {
@@ -148,9 +194,23 @@ class ExamControl extends Component
             return;
         }
 
-        // Load Questions
+        // --- ANTI-REFRESH: Urutan soal disimpan di DB ---
         if ($this->exam->randomize_questions) {
-            $this->questions = $this->exam->questions->shuffle()->values();
+            $savedOrder = $this->result->question_order;
+            if ($savedOrder && count($savedOrder) === $this->exam->questions->count()) {
+                // Gunakan urutan yang tersimpan
+                $questionMap = $this->exam->questions->keyBy('id');
+                $this->questions = collect($savedOrder)
+                    ->map(fn($id) => $questionMap->get($id))
+                    ->filter()
+                    ->values();
+            } else {
+                // Acak baru, simpan ke DB
+                $this->questions = $this->exam->questions->shuffle()->values();
+                $this->result->update([
+                    'question_order' => $this->questions->pluck('id')->toArray()
+                ]);
+            }
         } else {
             $this->questions = $this->exam->questions;
         }
@@ -170,7 +230,7 @@ class ExamControl extends Component
         }
 
         $this->currentQuestionIndex = $index;
-        $this->currentQuestion = $this->questions[$this->currentQuestionIndex];
+        $this->currentQuestion      = $this->questions[$this->currentQuestionIndex];
 
         $ans = UserAnswer::where('user_id', Auth::id())
             ->where('exam_id', $this->exam->id)
@@ -179,12 +239,12 @@ class ExamControl extends Component
 
         if ($ans) {
             $this->selectedOptionId = $ans->selected_option_id;
-            $this->essayAnswer = $ans->essay_answer ?? '';
-            $this->isDoubtful = $ans->is_doubtful ?? false;
+            $this->essayAnswer      = $ans->essay_answer ?? '';
+            $this->isDoubtful       = $ans->is_doubtful ?? false;
         } else {
             $this->selectedOptionId = null;
-            $this->essayAnswer = '';
-            $this->isDoubtful = false;
+            $this->essayAnswer      = '';
+            $this->isDoubtful       = false;
         }
     }
 
@@ -205,13 +265,13 @@ class ExamControl extends Component
         if (!$this->currentQuestion || !$this->result || $this->result->submitted_at) return;
 
         UserAnswer::updateOrCreate([
-            'user_id' => Auth::id(),
-            'exam_id' => $this->exam->id,
+            'user_id'     => Auth::id(),
+            'exam_id'     => $this->exam->id,
             'question_id' => $this->currentQuestion->id,
         ], [
             'selected_option_id' => $this->currentQuestion->type === 'multiple_choice' ? $this->selectedOptionId : null,
-            'essay_answer' => $this->currentQuestion->type === 'essay' ? $this->essayAnswer : null,
-            'is_doubtful' => $this->isDoubtful,
+            'essay_answer'       => $this->currentQuestion->type === 'essay' ? $this->essayAnswer : null,
+            'is_doubtful'        => $this->isDoubtful,
         ]);
     }
 
@@ -248,15 +308,15 @@ class ExamControl extends Component
             ->where('user_id', Auth::id())
             ->get();
 
-        $totalPgScore = 0;
+        $totalPgScore   = 0;
         $totalCorrectPg = 0;
-        $hasEssay = false;
+        $hasEssay       = false;
 
         foreach ($answers as $ans) {
             if ($ans->question->type === 'multiple_choice') {
                 if ($ans->selectedOption && $ans->selectedOption->is_correct) {
                     $ans->score_given = $ans->question->weight;
-                    $totalPgScore += $ans->question->weight;
+                    $totalPgScore    += $ans->question->weight;
                     $totalCorrectPg++;
                 } else {
                     $ans->score_given = 0;
@@ -268,19 +328,30 @@ class ExamControl extends Component
         }
 
         $totalExamMaxWeight = $this->exam->questions->sum('weight');
-        $pgMaxWeight = $this->exam->questions->where('type', 'multiple_choice')->sum('weight');
-        $pgScore = ($pgMaxWeight > 0) ? ($totalPgScore / $pgMaxWeight) * 100 : 0;
-        $initialScore = ($totalExamMaxWeight > 0) ? ($totalPgScore / $totalExamMaxWeight) * 100 : 0;
+        $pgMaxWeight        = $this->exam->questions->where('type', 'multiple_choice')->sum('weight');
+        $pgScore            = ($pgMaxWeight > 0) ? ($totalPgScore / $pgMaxWeight) * 100 : 0;
+        $initialScore       = ($totalExamMaxWeight > 0) ? ($totalPgScore / $totalExamMaxWeight) * 100 : 0;
 
         $this->result->update([
-            'submitted_at' => now(),
-            'score' => round($initialScore, 2),
+            'submitted_at'    => now(),
+            'score'           => round($initialScore, 2),
             'total_correct_pg' => $totalCorrectPg,
-            'total_pg_score' => round($pgScore, 2),
-            'is_graded' => !$hasEssay, // If no essay, automatically fully graded!
+            'total_pg_score'  => round($pgScore, 2),
+            'is_graded'       => !$hasEssay,
         ]);
 
         $this->isFinished = true;
+
+        // Mode latihan: kembali ke dashboard dengan notif
+        if ($this->isPracticeMode) {
+            session()->flash('practice_result', [
+                'score'    => round($initialScore, 2),
+                'correct'  => $totalCorrectPg,
+                'total'    => $this->exam->questions->where('type', 'multiple_choice')->count(),
+            ]);
+            return redirect()->route('dashboard');
+        }
+
         return redirect()->route('exam.result', ['examId' => $this->exam->id]);
     }
 

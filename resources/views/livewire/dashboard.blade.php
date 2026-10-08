@@ -97,6 +97,95 @@
         </div>
     </div>
 
+    <!-- ===== STATISTIK CHART ===== -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent py-3">
+                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Distribusi Nilai UTS</h5>
+                    <small class="text-muted">Berdasarkan nilai akhir yang sudah dikoreksi</small>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height:220px;">
+                    <canvas id="gradeChart" width="320" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent py-3">
+                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-graph-up-arrow me-2 text-success"></i>Rata-rata Nilai per Mata Kuliah</h5>
+                    <small class="text-muted">5 sesi UTS terakhir yang sudah dikoreksi</small>
+                </div>
+                <div class="card-body d-flex align-items-center" style="min-height:220px;">
+                    <canvas id="avgChart" style="width:100%; max-height:200px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Grade Distribution Donut Chart
+        const gradeCtx = document.getElementById('gradeChart');
+        if (gradeCtx) {
+            new Chart(gradeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['A (≥85)', 'B (70-84)', 'C (60-69)', 'D (50-59)', 'E (<50)'],
+                    datasets: [{
+                        data: [
+                            {{ $gradeDistribution["A"] }},
+                            {{ $gradeDistribution["B"] }},
+                            {{ $gradeDistribution["C"] }},
+                            {{ $gradeDistribution["D"] }},
+                            {{ $gradeDistribution["E"] }}
+                        ],
+                        backgroundColor: ['#198754','#0d6efd','#ffc107','#fd7e14','#dc3545'],
+                        borderWidth: 2,
+                        borderColor: '#fff',
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { font: { size: 12 }, boxWidth: 14 } }
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+
+        // Average per Exam Bar Chart
+        const avgCtx = document.getElementById('avgChart');
+        if (avgCtx) {
+            const labels = @json($avgPerExam->pluck('label'));
+            const avgs   = @json($avgPerExam->pluck('avg'));
+            new Chart(avgCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Rata-rata Nilai',
+                        data: avgs,
+                        backgroundColor: avgs.map(v => v >= 75 ? 'rgba(25,135,84,0.75)' : v >= 60 ? 'rgba(255,193,7,0.75)' : 'rgba(220,53,69,0.75)'),
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+    });
+    </script>
+
     <!-- Admin Quick Menu & Active Exams -->
     <div class="row g-4 mb-4">
         <div class="col-lg-8">
@@ -444,6 +533,21 @@
         </div>
     </div>
 
+    {{-- Flash notif hasil latihan --}}
+    @if(session('practice_result'))
+    @php $pr = session('practice_result'); @endphp
+    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert" style="border-left: 5px solid #198754 !important;">
+        <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-trophy-fill fs-2 text-warning"></i>
+            <div>
+                <h6 class="fw-bold mb-0">🎉 Latihan Selesai!</h6>
+                <span>Skor Anda: <strong class="text-success fs-5">{{ $pr['score'] }}</strong> | Benar: <strong>{{ $pr['correct'] }}</strong> dari <strong>{{ $pr['total'] }}</strong> soal PG</span>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
+
     <div class="row g-4">
         <!-- Active UTS Section -->
         <div class="col-lg-8">
@@ -456,7 +560,7 @@
                 </div>
                 <div class="card-body">
                     @forelse($activeExams as $exam)
-                    <div class="border rounded-3 p-4 mb-3 hover-shadow transition" style="border-left: 5px solid #435ebe !important;">
+                    <div class="border rounded-3 p-4 mb-3" style="border-left: 5px solid #435ebe !important;">
                         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
                             <div>
                                 <span class="badge bg-primary mb-1">{{ $exam->course->code ?? 'MK' }} - {{ $exam->course->name ?? 'Mata Kuliah' }}</span>
@@ -468,9 +572,16 @@
                         <p class="text-secondary small mb-3">{{ $exam->description ?? 'Tidak ada deskripsi tambahan.' }}</p>
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top">
                             <span class="small text-muted"><i class="bi bi-card-checklist me-1"></i> Total {{ $exam->questions_count }} Soal (PG & Essay)</span>
-                            <a href="/exam/{{ $exam->id }}" class="btn btn-primary fw-bold px-4 rounded-pill">
-                                <i class="bi bi-play-circle-fill me-1"></i> Kerjakan UTS
-                            </a>
+                            <div class="d-flex gap-2">
+                                {{-- Tombol Mode Latihan --}}
+                                <a href="/exam/{{ $exam->id }}/practice" class="btn btn-outline-success fw-bold px-3 rounded-pill"
+                                   title="Latihan soal tanpa token, tidak dihitung ke nilai resmi">
+                                    <i class="bi bi-lightning-charge-fill me-1"></i> Latihan
+                                </a>
+                                <a href="/exam/{{ $exam->id }}" class="btn btn-primary fw-bold px-4 rounded-pill">
+                                    <i class="bi bi-play-circle-fill me-1"></i> Kerjakan UTS
+                                </a>
+                            </div>
                         </div>
                     </div>
                     @empty

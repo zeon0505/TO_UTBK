@@ -20,12 +20,16 @@ class Result extends Model
         'violations_count',
         'started_at',
         'submitted_at',
+        'question_order',
+        'is_practice',
     ];
 
     protected $casts = [
-        'is_graded' => 'boolean',
-        'started_at' => 'datetime',
-        'submitted_at' => 'datetime',
+        'is_graded'      => 'boolean',
+        'is_practice'    => 'boolean',
+        'started_at'     => 'datetime',
+        'submitted_at'   => 'datetime',
+        'question_order' => 'array',
     ];
 
     /**
