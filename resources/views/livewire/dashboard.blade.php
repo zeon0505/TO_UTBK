@@ -98,6 +98,11 @@
     </div>
 
     <!-- ===== STATISTIK CHART ===== -->
+    @php
+        $gradeChartData = json_encode(array_values($gradeDistribution));
+        $avgLabels      = json_encode($avgPerExam->pluck('label')->values()->toArray());
+        $avgValues      = json_encode($avgPerExam->pluck('avg')->values()->toArray());
+    @endphp
     <div class="row g-4 mb-4">
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm h-100">
@@ -106,7 +111,9 @@
                     <small class="text-muted">Berdasarkan nilai akhir yang sudah dikoreksi</small>
                 </div>
                 <div class="card-body d-flex align-items-center justify-content-center" style="min-height:220px;">
-                    <canvas id="gradeChart" width="320" height="220"></canvas>
+                    <canvas id="gradeChart" width="320" height="220"
+                        data-values="{{ $gradeChartData }}">
+                    </canvas>
                 </div>
             </div>
         </div>
@@ -117,7 +124,10 @@
                     <small class="text-muted">5 sesi UTS terakhir yang sudah dikoreksi</small>
                 </div>
                 <div class="card-body d-flex align-items-center" style="min-height:220px;">
-                    <canvas id="avgChart" style="width:100%; max-height:200px;"></canvas>
+                    <canvas id="avgChart" style="width:100%; max-height:200px;"
+                        data-labels="{{ $avgLabels }}"
+                        data-values="{{ $avgValues }}">
+                    </canvas>
                 </div>
             </div>
         </div>
@@ -126,23 +136,18 @@
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Grade Distribution Donut Chart
-        const gradeCtx = document.getElementById('gradeChart');
+        var gradeCtx = document.getElementById('gradeChart');
         if (gradeCtx) {
+            var gradeData = JSON.parse(gradeCtx.dataset.values || '[]');
             new Chart(gradeCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['A (≥85)', 'B (70-84)', 'C (60-69)', 'D (50-59)', 'E (<50)'],
+                    labels: ['A (\u226585)', 'B (70-84)', 'C (60-69)', 'D (50-59)', 'E (<50)'],
                     datasets: [{
-                        data: [
-                            {{ $gradeDistribution["A"] }},
-                            {{ $gradeDistribution["B"] }},
-                            {{ $gradeDistribution["C"] }},
-                            {{ $gradeDistribution["D"] }},
-                            {{ $gradeDistribution["E"] }}
-                        ],
+                        data: gradeData,
                         backgroundColor: ['#198754','#0d6efd','#ffc107','#fd7e14','#dc3545'],
                         borderWidth: 2,
-                        borderColor: '#fff',
+                        borderColor: '#fff'
                     }]
                 },
                 options: {
@@ -156,20 +161,22 @@
         }
 
         // Average per Exam Bar Chart
-        const avgCtx = document.getElementById('avgChart');
+        var avgCtx = document.getElementById('avgChart');
         if (avgCtx) {
-            const labels = @json($avgPerExam->pluck('label'));
-            const avgs   = @json($avgPerExam->pluck('avg'));
+            var avgLabels = JSON.parse(avgCtx.dataset.labels || '[]');
+            var avgValues = JSON.parse(avgCtx.dataset.values || '[]');
             new Chart(avgCtx, {
                 type: 'bar',
                 data: {
-                    labels: labels,
+                    labels: avgLabels,
                     datasets: [{
                         label: 'Rata-rata Nilai',
-                        data: avgs,
-                        backgroundColor: avgs.map(v => v >= 75 ? 'rgba(25,135,84,0.75)' : v >= 60 ? 'rgba(255,193,7,0.75)' : 'rgba(220,53,69,0.75)'),
+                        data: avgValues,
+                        backgroundColor: avgValues.map(function(v) {
+                            return v >= 75 ? 'rgba(25,135,84,0.75)' : v >= 60 ? 'rgba(255,193,7,0.75)' : 'rgba(220,53,69,0.75)';
+                        }),
                         borderRadius: 8,
-                        borderSkipped: false,
+                        borderSkipped: false
                     }]
                 },
                 options: {
@@ -177,7 +184,7 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '' } },
+                        y: { beginAtZero: true, max: 100 },
                         x: { grid: { display: false } }
                     }
                 }
