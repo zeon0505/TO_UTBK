@@ -64,31 +64,46 @@ class ExamControl extends Component
         // Mode latihan: langsung mulai tanpa token, is_practice = true
         if ($this->isPracticeMode) {
             $this->showTokenModal = false;
-            $this->result = Result::where('user_id', Auth::id())
-                ->where('exam_id', $this->exam->id)
-                ->where('is_practice', true)
-                ->whereNull('submitted_at')
-                ->first();
+
+            try {
+                $this->result = Result::where('user_id', Auth::id())
+                    ->where('exam_id', $this->exam->id)
+                    ->where('is_practice', true)
+                    ->whereNull('submitted_at')
+                    ->first();
+            } catch (\Exception $e) {
+                $this->result = null;
+            }
 
             if (!$this->result) {
-                $this->result = Result::create([
-                    'user_id'    => Auth::id(),
-                    'exam_id'    => $this->exam->id,
-                    'started_at' => now(),
-                    'score'      => 0,
-                    'is_graded'  => false,
-                    'is_practice' => true,
+                $createData = [
+                    'user_id'          => Auth::id(),
+                    'exam_id'          => $this->exam->id,
+                    'started_at'       => now(),
+                    'score'            => 0,
+                    'is_graded'        => false,
                     'violations_count' => 0,
-                ]);
+                ];
+                try {
+                    $createData['is_practice'] = true;
+                } catch (\Exception $e) {}
+                $this->result = Result::create($createData);
             }
             $this->initExamSession();
             return;
         }
 
-        $this->result = Result::where('user_id', Auth::id())
-            ->where('exam_id', $this->exam->id)
-            ->where('is_practice', false)
-            ->first();
+        try {
+            $this->result = Result::where('user_id', Auth::id())
+                ->where('exam_id', $this->exam->id)
+                ->where('is_practice', false)
+                ->first();
+        } catch (\Exception $e) {
+            // Kolom is_practice belum ada, query tanpa filter
+            $this->result = Result::where('user_id', Auth::id())
+                ->where('exam_id', $this->exam->id)
+                ->first();
+        }
 
         if (!$this->result) {
             $this->showTokenModal = true;
