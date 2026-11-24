@@ -134,12 +134,12 @@
     <table class="header-table">
         <tr>
             <td style="width: 75px;">
-                <div class="logo-box">K</div>
+                <div class="logo-box">S</div>
             </td>
             <td>
-                <div class="univ-title">UNIVERSITAS TEKNOLOGI AKADEMIK</div>
-                <div class="univ-sub">FAKULTAS ILMU KOMPUTER & TEKNOLOGI INFORMASI</div>
-                <div class="univ-address">Jl. Kampus Utama No. 10, Kota Akademik • Telp: (021) 555-0199 • Web: www.kampus.ac.id</div>
+                <div class="univ-title">UNIVERSITAS STAIMAS WONOGIRI</div>
+                <div class="univ-sub">{{ $prodi && $prodi !== 'Semua Program Studi' ? 'PROGRAM STUDI ' . strtoupper($prodi) : 'SISTEM EVALUASI AKADEMIK PERKULIAHAN' }}</div>
+                <div class="univ-address">Jl. Raya Wonogiri, Jawa Tengah • Web: staimaswonogiri.ac.id</div>
             </td>
         </tr>
     </table>
@@ -150,21 +150,27 @@
     <table class="meta-table">
         <tr>
             <td class="meta-label">Mata Kuliah</td>
-            <td>: {{ $exam ? $exam->course->name . ' (' . $exam->course->code . ')' : 'Seluruh Mata Kuliah' }}</td>
+            <td>: {{ $course ? ($course->name . ' (' . $course->code . ')') : ($exam ? ($exam->course->name . ' (' . $exam->course->code . ')') : 'Seluruh Mata Kuliah') }}</td>
             <td class="meta-label">Tahun Akademik</td>
             <td>: {{ $tahunAkademik }}</td>
         </tr>
         <tr>
+            <td class="meta-label">Semester</td>
+            <td>: {{ $semester ?? ($course ? 'Semester ' . $course->semester : ($exam && $exam->course ? 'Semester ' . $exam->course->semester : 'Semua Semester')) }}</td>
             <td class="meta-label">Program Studi</td>
             <td>: {{ $prodi }}</td>
-            <td class="meta-label">Dosen Pengampu</td>
-            <td>: {{ $exam ? ($exam->lecturer->name ?? '-') : '-' }}</td>
         </tr>
         <tr>
             <td class="meta-label">Sesi Ujian</td>
-            <td>: {{ $exam ? $exam->title : 'Gabungan Sesi' }}</td>
+            <td>: {{ $exam ? $exam->title : ($course ? 'Seluruh Sesi UTS (' . $course->name . ')' : 'Seluruh Sesi UTS') }}</td>
+            <td class="meta-label">Dosen Pengampu</td>
+            <td>: {{ $exam ? ($exam->lecturer->name ?? '-') : ($course && $course->lecturer ? $course->lecturer->name : '-') }}</td>
+        </tr>
+        <tr>
             <td class="meta-label">Tanggal Cetak</td>
             <td>: {{ $printedAt }} (Oleh: {{ $printedBy }})</td>
+            <td class="meta-label">Total Mahasiswa</td>
+            <td>: {{ $results->count() }} Orang</td>
         </tr>
     </table>
 
@@ -238,11 +244,11 @@
                 NIP. 19750101 200501 1 001
             </td>
             <td>
-                Kota Akademik, {{ now()->translatedFormat('d F Y') }}<br>
+                Wonogiri, {{ now()->translatedFormat('d F Y') }}<br>
                 <strong>Dosen Pengampu / Penanggung Jawab</strong>
                 <div class="sign-space"></div>
-                <u>( {{ $exam ? ($exam->lecturer->name ?? $printedBy) : $printedBy }} )</u><br>
-                NIP. {{ $exam && $exam->lecturer ? ($exam->lecturer->nip ?? '19850101 201012 1 001') : '19850101 201012 1 001' }}
+                <u>( {{ $exam && $exam->lecturer ? $exam->lecturer->name : ($course && $course->lecturer ? $course->lecturer->name : $printedBy) }} )</u><br>
+                NIP. {{ $exam && $exam->lecturer ? ($exam->lecturer->nip ?? '19850101 201012 1 001') : ($course && $course->lecturer ? ($course->lecturer->nip ?? '19850101 201012 1 001') : '19850101 201012 1 001') }}
             </td>
         </tr>
     </table>

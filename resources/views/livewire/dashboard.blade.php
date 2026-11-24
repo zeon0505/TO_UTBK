@@ -6,7 +6,7 @@
                 <div class="card-body p-4 p-md-5 position-relative z-1">
                     <div class="row align-items-center">
                         <div class="col-lg-8">
-                            <span class="badge bg-white text-primary fw-bold mb-2">Portal UTS Kampus T.A. 2026/2027</span>
+                            <span class="badge bg-white text-primary fw-bold mb-2">Portal UTS Universitas Staimas Wonogiri T.A. 2026/2027</span>
                             <h2 class="fw-bold mb-2 text-white">Selamat Datang, {{ auth()->user()->name }}!</h2>
                             <p class="mb-0 text-white-50 fs-6">
                                 @if(auth()->user()->isDosen())
@@ -394,8 +394,12 @@
                             </select>
 
                             <!-- Export PDF Button -->
-                            <a href="/admin/reports/pdf?exam_id={{ $selectedExamId !== 'all' ? $selectedExamId : '' }}" target="_blank" class="btn btn-sm btn-danger fw-bold">
-                                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Ekspor Laporan PDF
+                            <a href="{{ $this->exportPdfUrl }}" target="_blank" class="btn btn-sm btn-danger fw-bold d-flex align-items-center gap-1 shadow-sm">
+                                <i class="bi bi-file-earmark-pdf-fill me-1"></i>
+                                <span>Ekspor Laporan PDF</span>
+                                @if($selectedSemester !== 'all')
+                                    <span class="badge bg-white text-danger ms-1" style="font-size: 0.72rem;">Sem {{ $selectedSemester }}</span>
+                                @endif
                             </a>
                         </div>
                     </div>

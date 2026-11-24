@@ -87,7 +87,7 @@
                 <div class="sidebar-header p-4">
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="logo">
-                            <h4 class="fw-bold text-primary mb-0"><i class="bi bi-mortarboard-fill me-2"></i>UTS <span class="text-secondary fs-6">KAMPUS</span></h4>
+                            <h4 class="fw-bold text-primary mb-0"><i class="bi bi-mortarboard-fill me-2"></i>STAIMAS <span class="text-secondary fs-6">WONOGIRI</span></h4>
                         </div>
                     </div>
                 </div>
@@ -227,7 +227,7 @@
             <footer class="mt-5 p-4 border-top" :class="darkMode ? '' : 'bg-white'">
                 <div class="footer clearfix mb-0 text-muted container-fluid">
                     <div class="float-start">
-                        <p class="mb-0">2026 &copy; Portal Ujian Tengah Semester (UTS) Kampus</p>
+                        <p class="mb-0">2026 &copy; Portal Ujian Tengah Semester (UTS) Universitas Staimas Wonogiri</p>
                     </div>
                     <div class="float-end">
                         <p class="mb-0">Sistem Evaluasi Akademik Perkuliahan</p>

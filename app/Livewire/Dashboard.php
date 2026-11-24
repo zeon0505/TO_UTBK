@@ -3,6 +3,8 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use Livewire\Attributes\Url;
+use Livewire\Attributes\Computed;
 use App\Models\Exam;
 use App\Models\Course;
 use App\Models\Result;
@@ -14,17 +16,43 @@ class Dashboard extends Component
     public string $tokenInput = '';
     public string $errorMessage = '';
 
+    #[Url(as: 'semester', except: 'all')]
     public string $selectedSemester = 'all';
+
+    #[Url(as: 'course_id', except: 'all')]
     public string $selectedCourseId = 'all';
+
+    #[Url(as: 'exam_id', except: 'all')]
     public string $selectedExamId = 'all';
+
     public string $searchMahasiswa = '';
 
     public function mount(): void
     {
         $semFromQuery = request()->query('semester');
-        if ($semFromQuery) {
+        if ($semFromQuery && $this->selectedSemester === 'all') {
             $this->selectedSemester = (string) $semFromQuery;
         }
+    }
+
+    #[Computed]
+    public function exportPdfUrl(): string
+    {
+        $params = [];
+        if ($this->selectedSemester !== 'all' && !empty($this->selectedSemester)) {
+            $params['semester'] = $this->selectedSemester;
+        }
+        if ($this->selectedCourseId !== 'all' && !empty($this->selectedCourseId)) {
+            $params['course_id'] = $this->selectedCourseId;
+        }
+        if ($this->selectedExamId !== 'all' && !empty($this->selectedExamId)) {
+            $params['exam_id'] = $this->selectedExamId;
+        }
+        if (!empty(trim($this->searchMahasiswa))) {
+            $params['search'] = trim($this->searchMahasiswa);
+        }
+
+        return route('admin.reports.pdf', $params);
     }
 
     public function updatedSelectedSemester(): void
