@@ -149,7 +149,11 @@ class CourseManager extends Component
         $coursesQuery = Course::with('lecturer');
         $lecturersQuery = User::whereIn('role', ['dosen', 'admin', 'superadmin']);
 
-        if ($user->prodi) {
+        if ($user->role === 'dosen') {
+            // Dosen HANYA melihat mata kuliah yang diampunya
+            $coursesQuery->where('lecturer_id', $user->id);
+            $lecturersQuery->where('id', $user->id);
+        } elseif ($user->prodi) {
             $coursesQuery->where('prodi', $user->prodi);
             $lecturersQuery->where(function($q) use ($user) {
                 $q->where('prodi', $user->prodi)->orWhereNull('prodi');

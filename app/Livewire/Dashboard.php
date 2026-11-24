@@ -110,14 +110,27 @@ class Dashboard extends Component
             $studentsQuery = User::where('role', 'mahasiswa');
             $resultsQuery = Result::with(['user', 'exam.course', 'exam.lecturer']);
 
-            if ($user->prodi) {
+            if ($user->role === 'dosen') {
+                // Dosen Pengampu: HANYA melihat mata kuliah, ujian, dan mahasiswa yang diampunya
+                $coursesQuery->where('lecturer_id', $user->id);
+                $examsQuery->where(function($q) use ($user) {
+                    $q->where('lecturer_id', $user->id)
+                      ->orWhereHas('course', fn($cq) => $cq->where('lecturer_id', $user->id));
+                });
+                $resultsQuery->whereHas('exam', function($q) use ($user) {
+                    $q->where('lecturer_id', $user->id)
+                      ->orWhereHas('course', fn($cq) => $cq->where('lecturer_id', $user->id));
+                });
+                if ($user->prodi) {
+                    $coursesQuery->where('prodi', $user->prodi);
+                    $studentsQuery->where('prodi', $user->prodi);
+                }
+            } elseif ($user->prodi) {
+                // Admin Prodi: melihat seluruh data di prodinya
                 $coursesQuery->where('prodi', $user->prodi);
                 $examsQuery->whereHas('course', fn($q) => $q->where('prodi', $user->prodi));
                 $studentsQuery->where('prodi', $user->prodi);
                 $resultsQuery->whereHas('exam.course', fn($q) => $q->where('prodi', $user->prodi));
-            } elseif ($user->isDosen()) {
-                $examsQuery->where('lecturer_id', $user->id);
-                $resultsQuery->whereHas('exam', fn($q) => $q->where('lecturer_id', $user->id));
             }
 
             if ($this->selectedSemester !== 'all') {
@@ -168,7 +181,14 @@ class Dashboard extends Component
 
             // ===== STATISTIK DASHBOARD =====
             // Distribusi nilai (A, B, C, D, E)
-            $allGradedResults = Result::whereHas('exam.course', fn($q) => $user->prodi ? $q->where('prodi', $user->prodi) : $q)
+            $allGradedResults = Result::whereHas('exam', function($q) use ($user) {
+                if ($user->role === 'dosen') {
+                    $q->where('lecturer_id', $user->id)
+                      ->orWhereHas('course', fn($cq) => $cq->where('lecturer_id', $user->id));
+                } elseif ($user->prodi) {
+                    $q->whereHas('course', fn($cq) => $cq->where('prodi', $user->prodi));
+                }
+            })
                 ->where('is_graded', true)
                 ->where('is_practice', false)
                 ->get();

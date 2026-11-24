@@ -227,7 +227,7 @@
             <footer class="mt-5 p-4 border-top" :class="darkMode ? '' : 'bg-white'">
                 <div class="footer clearfix mb-0 text-muted container-fluid">
                     <div class="float-start">
-                        <p class="mb-0">2026 &copy; Portal Ujian Tengah Semester (UTS) Universitas Staimas Wonogiri</p>
+                        <p class="mb-0">2026 &copy; Portal Ujian Tengah Semester (UTS) STAIMAS Wonogiri</p>
                     </div>
                     <div class="float-end">
                         <p class="mb-0">Sistem Evaluasi Akademik Perkuliahan</p>

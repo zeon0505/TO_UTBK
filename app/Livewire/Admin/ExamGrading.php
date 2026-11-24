@@ -17,9 +17,29 @@ class ExamGrading extends Component
     public ?int $selectedResultId = null;
     public array $essayScores = []; // [answer_id => score]
 
+    // Custom Reset Confirmation Modal State
+    public bool $showResetModal = false;
+    public ?int $resetTargetResultId = null;
+    public ?string $resetTargetStudentName = null;
+    public ?string $resetTargetStudentNim = null;
+    public ?string $resetTargetStudentKelas = null;
+
     public function mount(int $examId): void
     {
         $this->examId = $examId;
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $exam = Exam::with('course')->findOrFail($this->examId);
+
+        // Keamanan: Dosen pengampu HANYA boleh mengakses dan menilai mata kuliah/ujian yang diampunya
+        if ($user && $user->role === 'dosen') {
+            $isPengampu = ($exam->lecturer_id === $user->id) || ($exam->course && $exam->course->lecturer_id === $user->id);
+            if (!$isPengampu) {
+                abort(403, 'Akses Ditolak: Anda bukan dosen pengampu untuk mata kuliah/sesi ujian ini.');
+            }
+        }
+
         $resultId = request()->query('result_id');
         if ($resultId) {
             $this->selectStudentResult((int) $resultId);
@@ -102,6 +122,36 @@ class ExamGrading extends Component
         session()->flash('message', "Nilai UTS untuk mahasiswa {$result->user->name} berhasil disimpan & dipublis!");
     }
 
+    public function confirmReset(int $resultId): void
+    {
+        $res = Result::with('user')->find($resultId);
+        if (!$res) return;
+
+        $this->resetTargetResultId = $resultId;
+        $this->resetTargetStudentName = $res->user->name ?? 'Mahasiswa';
+        $this->resetTargetStudentNim = $res->user->nim ?? '-';
+        $this->resetTargetStudentKelas = $res->user->kelas ?? '-';
+        $this->showResetModal = true;
+    }
+
+    public function closeResetModal(): void
+    {
+        $this->showResetModal = false;
+        $this->resetTargetResultId = null;
+        $this->resetTargetStudentName = null;
+        $this->resetTargetStudentNim = null;
+        $this->resetTargetStudentKelas = null;
+    }
+
+    public function executeReset(): void
+    {
+        if (!$this->resetTargetResultId) return;
+
+        $targetId = $this->resetTargetResultId;
+        $this->closeResetModal();
+        $this->resetStudentExam($targetId);
+    }
+
     public function resetStudentExam(int $resultId): void
     {
         /** @var \App\Models\User $user */
@@ -126,6 +176,11 @@ class ExamGrading extends Component
         $this->essayScores = [];
 
         session()->flash('message', "Status ujian {$studentName} berhasil direset total! Riwayat dan jawaban telah dihapus sehingga mahasiswa dapat memasukkan token dan memulai ujian kembali.");
+        $this->dispatch('swal:modal', [
+            'type' => 'success',
+            'title' => 'Ujian Berhasil Direset!',
+            'text' => "Data ujian mahasiswa {$studentName} telah dibersihkan. Mahasiswa kini dapat memulai kembali ujian dari awal.",
+        ]);
     }
 
     public function render()

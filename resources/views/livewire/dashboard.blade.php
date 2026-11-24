@@ -6,7 +6,7 @@
                 <div class="card-body p-4 p-md-5 position-relative z-1">
                     <div class="row align-items-center">
                         <div class="col-lg-8">
-                            <span class="badge bg-white text-primary fw-bold mb-2">Portal UTS Universitas Staimas Wonogiri T.A. 2026/2027</span>
+                            <span class="badge bg-white text-primary fw-bold mb-2">Portal UTS STAIMAS Wonogiri T.A. 2026/2027</span>
                             <h2 class="fw-bold mb-2 text-white">Selamat Datang, {{ auth()->user()->name }}!</h2>
                             <p class="mb-0 text-white-50 fs-6">
                                 @if(auth()->user()->isDosen())

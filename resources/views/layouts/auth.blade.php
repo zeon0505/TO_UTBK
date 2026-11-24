@@ -57,7 +57,7 @@
                 <div style="width:44px; height:44px; background:#4f46e5; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; margin-bottom:0.75rem;">
                     <i class="bi bi-mortarboard-fill" style="color:#fff; font-size:20px;"></i>
                 </div>
-                <div style="font-size:1.1rem; font-weight:700; color:#111827; letter-spacing:-0.3px;">Universitas Staimas Wonogiri</div>
+                <div style="font-size:1.1rem; font-weight:700; color:#111827; letter-spacing:-0.3px;">STAIMAS Wonogiri</div>
                 <div style="font-size:0.8rem; color:#9ca3af; margin-top:2px;">Portal Ujian Tengah Semester</div>
             </div>
 

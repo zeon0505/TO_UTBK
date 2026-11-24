@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\Question;
 use App\Models\Option;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Auth;
 use Livewire\WithFileUploads;
 
 #[Layout('layouts.app')]
@@ -48,11 +49,23 @@ class QuestionGenerator extends Component
 
     public function mount()
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $examsQuery = Exam::query();
+        if ($user && $user->role === 'dosen') {
+            $examsQuery->where(function($q) use ($user) {
+                $q->where('lecturer_id', $user->id)
+                  ->orWhereHas('course', fn($cq) => $cq->where('lecturer_id', $user->id));
+            });
+        } elseif ($user && $user->prodi) {
+            $examsQuery->whereHas('course', fn($q) => $q->where('prodi', $user->prodi));
+        }
+
         $examId = request()->query('exam_id');
-        if ($examId && Exam::where('id', $examId)->exists()) {
+        if ($examId && (clone $examsQuery)->where('id', $examId)->exists()) {
             $this->selectedExamId = $examId;
         } else {
-            $firstExam = Exam::first();
+            $firstExam = (clone $examsQuery)->first();
             if ($firstExam) {
                 $this->selectedExamId = $firstExam->id;
             }
@@ -301,7 +314,20 @@ class QuestionGenerator extends Component
 
     public function render()
     {
-        $exams = Exam::with('course')->get();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $examsQuery = Exam::with('course');
+
+        if ($user && $user->role === 'dosen') {
+            $examsQuery->where(function($q) use ($user) {
+                $q->where('lecturer_id', $user->id)
+                  ->orWhereHas('course', fn($cq) => $cq->where('lecturer_id', $user->id));
+            });
+        } elseif ($user && $user->prodi) {
+            $examsQuery->whereHas('course', fn($q) => $q->where('prodi', $user->prodi));
+        }
+
+        $exams = $examsQuery->get();
 
         $questions = [];
         $totalWeight = 0;

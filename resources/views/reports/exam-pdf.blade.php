@@ -137,7 +137,7 @@
                 <div class="logo-box">S</div>
             </td>
             <td>
-                <div class="univ-title">UNIVERSITAS STAIMAS WONOGIRI</div>
+                <div class="univ-title">STAIMAS WONOGIRI</div>
                 <div class="univ-sub">{{ $prodi && $prodi !== 'Semua Program Studi' ? 'PROGRAM STUDI ' . strtoupper($prodi) : 'SISTEM EVALUASI AKADEMIK PERKULIAHAN' }}</div>
                 <div class="univ-address">Jl. Raya Wonogiri, Jawa Tengah • Web: staimaswonogiri.ac.id</div>
             </td>

@@ -91,6 +91,13 @@ class ExamManager extends Component
         ]);
 
         $course = Course::findOrFail($this->course_id);
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        if ($user && $user->role === 'dosen') {
+            if ($course->lecturer_id !== $user->id) {
+                abort(403, 'Akses Ditolak: Anda hanya dapat mengelola sesi UTS untuk mata kuliah yang Anda ampu.');
+            }
+        }
 
         Exam::updateOrCreate(
             ['id' => $this->selectedExamId],
@@ -134,15 +141,30 @@ class ExamManager extends Component
 
     public function render()
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
         $examsQuery = Exam::with(['course', 'lecturer'])
             ->withCount(['questions', 'results']);
+        $coursesQuery = Course::query();
+
+        if ($user && $user->role === 'dosen') {
+            // Dosen HANYA melihat mata kuliah dan sesi ujian yang diampunya
+            $coursesQuery->where('lecturer_id', $user->id);
+            $examsQuery->where(function($q) use ($user) {
+                $q->where('lecturer_id', $user->id)
+                  ->orWhereHas('course', fn($cq) => $cq->where('lecturer_id', $user->id));
+            });
+        } elseif ($user && $user->prodi) {
+            $coursesQuery->where('prodi', $user->prodi);
+            $examsQuery->whereHas('course', fn($q) => $q->where('prodi', $user->prodi));
+        }
 
         if ($this->filterCourseId !== 'all') {
             $examsQuery->where('course_id', $this->filterCourseId);
         }
 
         $exams = $examsQuery->latest()->get();
-        $courses = Course::all();
+        $courses = $coursesQuery->get();
 
         return view('livewire.admin.exam-manager', [
             'exams' => $exams,

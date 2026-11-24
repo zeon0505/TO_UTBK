@@ -59,8 +59,7 @@
                             <div class="px-3 pb-2 pt-0" style="background: rgba(220,53,69,0.07); border-top: 1px solid rgba(220,53,69,0.15);">
                                 <button type="button"
                                     class="btn btn-sm btn-outline-danger w-100 mt-2 fw-semibold"
-                                    wire:click="resetStudentExam({{ $res->id }})"
-                                    wire:confirm="Reset ujian mahasiswa {{ $res->user->name ?? '' }}?\n\nSemua jawaban akan dihapus, waktu pengerjaan dikembalikan utuh, dan status pelanggaran dikosongkan agar mahasiswa dapat mengerjakan ulang dari awal.">
+                                    wire:click="confirmReset({{ $res->id }})">
                                     <i class="bi bi-arrow-counterclockwise me-1"></i> Pulihkan &amp; Reset Ujian
                                 </button>
                             </div>
@@ -105,8 +104,7 @@
                         </div>
                         <div class="d-flex gap-2 flex-wrap">
                             <button type="button" class="btn btn-outline-danger btn-sm fw-semibold"
-                                wire:click="resetStudentExam({{ $selectedResult->id }})"
-                                wire:confirm="Reset ujian mahasiswa {{ $selectedResult->user->name }}?\n\nSemua jawaban akan dihapus, batas waktu kembali utuh, dan status pelanggaran dikosongkan.">
+                                wire:click="confirmReset({{ $selectedResult->id }})">
                                 <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Ujian
                             </button>
                             <button class="btn btn-success fw-bold" wire:click="saveGrading">
