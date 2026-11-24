@@ -236,7 +236,9 @@ class Dashboard extends Component
         $activeExams = $activeExamsQuery->get();
 
         $myResultsQuery = Result::with(['exam.course', 'exam.lecturer'])
-            ->where('user_id', $user->id);
+            ->where('user_id', $user->id)
+            ->whereNotNull('submitted_at')
+            ->where('is_practice', false);
 
         if ($this->selectedCourseId !== 'all') {
             $myResultsQuery->whereHas('exam', fn($q) => $q->where('course_id', $this->selectedCourseId));

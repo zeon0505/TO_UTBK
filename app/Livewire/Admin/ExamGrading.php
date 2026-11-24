@@ -112,30 +112,20 @@ class ExamGrading extends Component
         }
 
         $result = Result::with('user')->findOrFail($resultId);
+        $studentName = $result->user->name ?? 'Mahasiswa';
 
-        // Hapus semua jawaban mahasiswa
+        // 1. Hapus semua jawaban mahasiswa untuk ujian ini
         UserAnswer::where('user_id', $result->user_id)
             ->where('exam_id', $result->exam_id)
             ->delete();
 
-        // Reset result: hapus submitted_at, reset pelanggaran, reset skor, urutan soal
-        $result->update([
-            'submitted_at'     => null,
-            'started_at'       => null,
-            'violations_count' => 0,
-            'score'            => 0,
-            'total_correct_pg' => 0,
-            'total_pg_score'   => 0,
-            'total_essay_score'=> 0,
-            'is_graded'        => false,
-            'question_order'   => null,
-        ]);
+        // 2. Hapus record hasil ujian agar bersih total dan riwayat di akun mahasiswa hilang
+        $result->delete();
 
-        if ($this->selectedResultId === $resultId) {
-            $this->selectStudentResult($resultId);
-        }
+        $this->selectedResultId = null;
+        $this->essayScores = [];
 
-        session()->flash('message', "Status ujian {$result->user->name} berhasil dipulihkan & direset! Jawaban dihapus, batas waktu kembali utuh, dan pelanggaran dikosongkan.");
+        session()->flash('message', "Status ujian {$studentName} berhasil direset total! Riwayat dan jawaban telah dihapus sehingga mahasiswa dapat memasukkan token dan memulai ujian kembali.");
     }
 
     public function render()

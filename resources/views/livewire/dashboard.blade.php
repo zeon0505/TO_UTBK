@@ -623,9 +623,15 @@
                                     <small class="text-muted">{{ $res->exam->title }}</small>
                                 </div>
                                 <div class="text-end">
-                                    <span class="badge bg-success-subtle text-success border border-success px-3 py-2 fw-bold small">
-                                        <i class="bi bi-check-circle-fill me-1"></i> Selesai
-                                    </span>
+                                    @if($res->is_graded)
+                                        <span class="badge bg-success-subtle text-success border border-success px-3 py-2 fw-bold small">
+                                            <i class="bi bi-check-circle-fill me-1"></i> Telah Dinilai
+                                        </span>
+                                    @else
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-3 py-2 fw-bold small">
+                                            <i class="bi bi-clock-history me-1"></i> Menunggu Koreksi
+                                        </span>
+                                    @endif
                                 </div>
                             </div>
                         </li>
