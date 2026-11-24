@@ -461,7 +461,7 @@
                                         @endif
                                     </td>
                                     <td class="text-end pe-3">
-                                        <a href="/admin/grading/{{ $res->exam_id }}" class="btn btn-sm btn-outline-warning fw-bold" wire:navigate title="Koreksi Essay & Nilai">
+                                        <a href="/admin/grading/{{ $res->exam_id }}?result_id={{ $res->id }}" class="btn btn-sm btn-outline-warning fw-bold" wire:navigate title="Koreksi Essay & Nilai">
                                             <i class="bi bi-pencil-square me-1"></i> Koreksi
                                         </a>
                                     </td>
