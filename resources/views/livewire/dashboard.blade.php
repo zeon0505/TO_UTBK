@@ -3,12 +3,12 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card bg-primary text-white border-0 shadow-sm overflow-hidden position-relative" style="background: linear-gradient(135deg, #435ebe 0%, #25396e 100%);">
-                <div class="card-body p-4 p-md-5 position-relative z-1">
+                <div class="card-body p-3 p-md-5 position-relative z-1">
                     <div class="row align-items-center">
                         <div class="col-lg-8">
                             <span class="badge bg-white text-primary fw-bold mb-2">Portal UTS STAIMAS Wonogiri T.A. 2026/2027</span>
-                            <h2 class="fw-bold mb-2 text-white">Selamat Datang, {{ auth()->user()->name }}!</h2>
-                            <p class="mb-0 text-white-50 fs-6">
+                            <h2 class="fw-bold mb-2 text-white fs-4 fs-md-2">Selamat Datang, {{ auth()->user()->name }}!</h2>
+                            <p class="mb-0 text-white-50 small">
                                 @if(auth()->user()->isDosen())
                                     Dosen Pengampu | NIP: <strong>{{ auth()->user()->nip ?? '-' }}</strong> | Program Studi: <strong>{{ auth()->user()->prodi ?? '-' }}</strong>
                                 @elseif(auth()->user()->isAdmin())
@@ -42,55 +42,55 @@
 
     @if(auth()->user()->isDosen() || auth()->user()->isAdmin())
     <!-- Stats Row for Dosen/Admin -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
+    <div class="row g-2 g-md-3 mb-4">
+        <div class="col-6 col-lg-3">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="stats-icon bg-primary text-white rounded-3 p-3 me-3 d-flex align-items-center justify-content-center" style="width:54px; height:54px;">
-                        <i class="bi bi-journal-bookmark-fill fs-3"></i>
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="stats-icon bg-primary text-white rounded-3 p-2 p-md-3 me-2 me-md-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width:44px; height:44px;">
+                        <i class="bi bi-journal-bookmark-fill fs-4"></i>
                     </div>
-                    <div>
-                        <h6 class="text-muted mb-1 text-uppercase small">Mata Kuliah</h6>
-                        <h3 class="fw-bold mb-0">{{ $coursesCount }}</h3>
+                    <div class="overflow-hidden">
+                        <h6 class="text-muted mb-0 text-uppercase small text-truncate">Mata Kuliah</h6>
+                        <h3 class="fw-bold mb-0 fs-5 fs-md-3">{{ $coursesCount }}</h3>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-lg-3">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="stats-icon bg-success text-white rounded-3 p-3 me-3 d-flex align-items-center justify-content-center" style="width:54px; height:54px;">
-                        <i class="bi bi-calendar-check-fill fs-3"></i>
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="stats-icon bg-success text-white rounded-3 p-2 p-md-3 me-2 me-md-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width:44px; height:44px;">
+                        <i class="bi bi-calendar-check-fill fs-4"></i>
                     </div>
-                    <div>
-                        <h6 class="text-muted mb-1 text-uppercase small">Sesi UTS Aktif</h6>
-                        <h3 class="fw-bold mb-0">{{ $examsCount }}</h3>
+                    <div class="overflow-hidden">
+                        <h6 class="text-muted mb-0 text-uppercase small text-truncate">Sesi UTS Aktif</h6>
+                        <h3 class="fw-bold mb-0 fs-5 fs-md-3">{{ $examsCount }}</h3>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-lg-3">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="stats-icon bg-info text-white rounded-3 p-3 me-3 d-flex align-items-center justify-content-center" style="width:54px; height:54px;">
-                        <i class="bi bi-people-fill fs-3"></i>
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="stats-icon bg-info text-white rounded-3 p-2 p-md-3 me-2 me-md-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width:44px; height:44px;">
+                        <i class="bi bi-people-fill fs-4"></i>
                     </div>
-                    <div>
-                        <h6 class="text-muted mb-1 text-uppercase small">Total Mahasiswa</h6>
-                        <h3 class="fw-bold mb-0">{{ $studentsCount }}</h3>
+                    <div class="overflow-hidden">
+                        <h6 class="text-muted mb-0 text-uppercase small text-truncate">Mahasiswa</h6>
+                        <h3 class="fw-bold mb-0 fs-5 fs-md-3">{{ $studentsCount }}</h3>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-lg-3">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="stats-icon bg-warning text-white rounded-3 p-3 me-3 d-flex align-items-center justify-content-center" style="width:54px; height:54px;">
-                        <i class="bi bi-pencil-square fs-3"></i>
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="stats-icon bg-warning text-white rounded-3 p-2 p-md-3 me-2 me-md-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width:44px; height:44px;">
+                        <i class="bi bi-pencil-square fs-4"></i>
                     </div>
-                    <div>
-                        <h6 class="text-muted mb-1 text-uppercase small">Pending Koreksi</h6>
-                        <h3 class="fw-bold mb-0">{{ $pendingGradingCount }}</h3>
+                    <div class="overflow-hidden">
+                        <h6 class="text-muted mb-0 text-uppercase small text-truncate">Koreksi</h6>
+                        <h3 class="fw-bold mb-0 fs-5 fs-md-3">{{ $pendingGradingCount }}</h3>
                     </div>
                 </div>
             </div>

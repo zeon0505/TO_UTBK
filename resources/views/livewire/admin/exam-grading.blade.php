@@ -290,4 +290,70 @@
             @endif
         </div>
     </div>
+
+    <!-- Custom Modal Konfirmasi Reset Ujian -->
+    @if($showResetModal)
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 1060;" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 1rem; overflow: hidden;">
+                <!-- Header with colored bar -->
+                <div class="p-4 text-center pb-2 position-relative" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);">
+                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3" wire:click="closeResetModal" aria-label="Close"></button>
+                    <div class="d-inline-flex align-items-center justify-content-center bg-danger text-white rounded-circle shadow-sm mb-3" style="width: 64px; height: 64px;">
+                        <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">Konfirmasi Reset &amp; Pulihkan Ujian</h5>
+                    <p class="text-muted small mb-0">Tindakan ini akan mengembalikan hak ujian mahasiswa agar dapat mulai dari awal.</p>
+                </div>
+
+                <div class="modal-body p-4 pt-3">
+                    <!-- Student Info Card -->
+                    <div class="bg-light p-3 rounded-3 border mb-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 44px; height: 44px; font-size: 1.1rem;">
+                                {{ strtoupper(substr($resetTargetStudentName ?? 'M', 0, 1)) }}
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark">{{ $resetTargetStudentName }}</h6>
+                                <div class="text-muted small">
+                                    <span>NIM: <strong class="text-dark">{{ $resetTargetStudentNim }}</strong></span> &bull; 
+                                    <span>Kelas: <strong class="text-dark">{{ $resetTargetStudentKelas }}</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Warning Points -->
+                    <div class="alert alert-warning border-0 d-flex align-items-start gap-2 mb-0 py-2 px-3" style="border-radius: 0.75rem; font-size: 0.85rem;">
+                        <i class="bi bi-info-circle-fill text-warning flex-shrink-0 mt-1"></i>
+                        <div>
+                            <strong>Apa yang akan terjadi?</strong>
+                            <ul class="mb-0 ps-3 mt-1 text-secondary">
+                                <li>Seluruh jawaban pilihan ganda &amp; essay mahasiswa akan dihapus.</li>
+                                <li>Status selesai / nilai UTS mahasiswa akan dihapus dari sistem.</li>
+                                <li>Riwayat ujian di akun mahasiswa akan dibersihkan.</li>
+                                <li>Mahasiswa dapat memasukkan <strong>Token UTS</strong> kembali untuk mengerjakan ujian dari durasi penuh.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-end gap-2 border-0">
+                    <button type="button" class="btn btn-secondary px-3 fw-semibold" wire:click="closeResetModal">
+                        <i class="bi bi-x-circle me-1"></i> Batal
+                    </button>
+                    <button type="button" class="btn btn-danger px-4 fw-bold shadow-sm" wire:click="executeReset" wire:loading.attr="disabled">
+                        <span wire:loading.remove wire:target="executeReset">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Ya, Reset Ujian Sekarang
+                        </span>
+                        <span wire:loading wire:target="executeReset">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            Sedang Mereset...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

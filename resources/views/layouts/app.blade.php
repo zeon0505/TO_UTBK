@@ -72,26 +72,108 @@
             font-weight: 700 !important;
             box-shadow: 0 2px 8px rgba(67,94,190,0.35);
         }
+
+        /* Mobile & Tablet Responsive Layout */
+        @media (max-width: 1199.98px) {
+            #sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                width: 280px !important;
+                height: 100vh !important;
+                z-index: 1050 !important;
+                transform: translateX(-100%) !important;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                box-shadow: none !important;
+            }
+            #sidebar.active {
+                transform: translateX(0) !important;
+                box-shadow: 0 0 35px rgba(0, 0, 0, 0.35) !important;
+            }
+            #main {
+                margin-left: 0 !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                transition: all 0.3s ease !important;
+            }
+            .sidebar-backdrop {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(15, 23, 42, 0.65);
+                backdrop-filter: blur(3px);
+                z-index: 1040;
+            }
+            header {
+                padding: 0.75rem 1rem !important;
+            }
+            #main-content {
+                padding-left: 0.5rem !important;
+                padding-right: 0.5rem !important;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            #sidebar {
+                position: fixed !important;
+                left: 0 !important;
+                width: 280px !important;
+                transform: none !important;
+                z-index: 100 !important;
+            }
+            #main {
+                margin-left: 280px !important;
+                width: calc(100% - 280px) !important;
+            }
+            .sidebar-backdrop {
+                display: none !important;
+            }
+            .sidebar-hide {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body x-data="{ 
     darkMode: localStorage.getItem('theme') === 'dark',
+    sidebarOpen: false,
     toggleDark() {
         this.darkMode = !this.darkMode;
         localStorage.setItem('theme', this.darkMode ? 'dark' : 'light');
     }
-}" :class="darkMode ? 'theme-dark' : ''">
+}" :class="darkMode ? 'theme-dark' : ''"
+  @keydown.escape.window="sidebarOpen = false">
     <div id="app" class="{{ request()->routeIs('exam.show') ? 'sidebar-hidden' : '' }}">
-        <div id="sidebar" class="active" @if(request()->routeIs('exam.show')) style="display: none !important;" @endif>
-            <div class="sidebar-wrapper active">
-                <div class="sidebar-header p-4">
+        <!-- Mobile Sidebar Backdrop -->
+        <div class="sidebar-backdrop" 
+             x-show="sidebarOpen" 
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click="sidebarOpen = false" 
+             style="display: none;"></div>
+
+        <div id="sidebar" :class="sidebarOpen ? 'active' : ''" @if(request()->routeIs('exam.show')) style="display: none !important;" @endif>
+            <div class="sidebar-wrapper">
+                <div class="sidebar-header p-4 pb-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="logo">
                             <h4 class="fw-bold text-primary mb-0"><i class="bi bi-mortarboard-fill me-2"></i>STAIMAS <span class="text-secondary fs-6">WONOGIRI</span></h4>
                         </div>
+                        <div class="sidebar-toggler">
+                            <a href="#" class="sidebar-hide d-xl-none d-block text-secondary fs-4 p-1" @click.prevent="sidebarOpen = false" aria-label="Tutup Menu">
+                                <i class="bi bi-x-lg"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
-                <div class="sidebar-menu">
+                <div class="sidebar-menu" @click="if ($event.target.closest('a:not([href=\'#\'])')) sidebarOpen = false">
                     <ul class="menu">
                         <li class="sidebar-title mt-2 mb-2 opacity-50 text-uppercase small">Menu Utama</li>
 
@@ -183,13 +265,13 @@
         
         <div id="main">
             <header class='mb-4 shadow-sm p-3' :class="darkMode ? '' : 'bg-white'">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-                    <a href="#" class="burger-btn d-block d-xl-none">
-                        <i class="bi bi-justify fs-3"></i>
-                    </a>
-                    <div class="user-info ms-auto d-flex align-items-center">
+                <div class="container-fluid d-flex justify-content-between align-items-center px-1 px-md-3">
+                    <button type="button" class="burger-btn btn btn-sm btn-outline-primary d-xl-none rounded-3 px-2 py-1 shadow-sm d-flex align-items-center gap-1" @click="sidebarOpen = !sidebarOpen" aria-label="Toggle Menu">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+                    <div class="user-info ms-auto d-flex align-items-center gap-2">
                         <!-- Dark Mode Toggle -->
-                        <div class="theme-toggle d-flex gap-2 align-items-center me-4 pointer" @click="toggleDark()">
+                        <div class="theme-toggle d-flex gap-1 align-items-center me-2 pointer" @click="toggleDark()" title="Mode Gelap / Terang">
                             <i class="bi bi-sun-fill fs-5 text-warning" x-show="!darkMode"></i>
                             <i class="bi bi-moon-stars-fill fs-5 text-primary" x-show="darkMode"></i>
                             <div class="form-check form-switch fs-6 mb-0">
@@ -198,20 +280,20 @@
                         </div>
 
                         @auth
-                        <a href="/profile" class="text-end me-3 text-decoration-none" wire:navigate>
-                            <h6 class="mb-0 fw-semibold" :class="darkMode ? 'text-white' : 'text-dark'">{{ Auth::user()->name }}</h6>
+                        <a href="/profile" class="text-end me-2 text-decoration-none d-none d-sm-block" wire:navigate>
+                            <h6 class="mb-0 fw-semibold text-truncate" style="max-width: 150px;" :class="darkMode ? 'text-white' : 'text-dark'">{{ Auth::user()->name }}</h6>
                             <small class="text-muted">
                                 @if(Auth::user()->role === 'admin')
                                     <span class="badge bg-danger">Admin</span>
                                 @elseif(Auth::user()->role === 'dosen')
-                                    <span class="badge bg-primary">Dosen (NIP: {{ Auth::user()->nip ?? '-' }})</span>
+                                    <span class="badge bg-primary">Dosen</span>
                                 @else
-                                    <span class="badge bg-info text-dark">Mahasiswa (NIM: {{ Auth::user()->nim ?? '-' }})</span>
+                                    <span class="badge bg-info text-dark">Mhs ({{ Auth::user()->nim ?? '-' }})</span>
                                 @endif
                             </small>
                         </a>
-                        <a href="/profile" class="avatar avatar-md border p-1 rounded-circle bg-primary text-white text-center" wire:navigate style="width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center;">
-                            <i class="bi bi-person-fill fs-4"></i>
+                        <a href="/profile" class="avatar avatar-md border p-1 rounded-circle bg-primary text-white text-center flex-shrink-0" wire:navigate style="width:38px; height:38px; display:inline-flex; align-items:center; justify-content:center;">
+                            <i class="bi bi-person-fill fs-5"></i>
                         </a>
                         @endauth
                     </div>
@@ -240,6 +322,19 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     @livewireScripts
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('swal:modal', (data) => {
+                const params = Array.isArray(data) ? data[0] : data;
+                Swal.fire({
+                    icon: params.type || params.icon || 'info',
+                    title: params.title || '',
+                    text: params.text || '',
+                    confirmButtonColor: '#435ebe',
+                });
+            });
+        });
+    </script>
     @if(session('just_logged_in'))
     <script>
         // Remove the just_logged_in session flag after animation plays

@@ -11,18 +11,18 @@ use Carbon\Carbon;
 
 class ExamManager extends Component
 {
-    public $course_id = null;
-    public $title = '';
-    public $description = '';
-    public $duration_minutes = 90;
-    public $token = '';
-    public $start_time = '';
-    public $end_time = '';
-    public $randomize_questions = false;
+    public ?int $course_id = null;
+    public string $title = '';
+    public string $description = '';
+    public int $duration_minutes = 90;
+    public string $token = '';
+    public string $start_time = '';
+    public string $end_time = '';
+    public bool $randomize_questions = false;
     
-    public $selectedExamId = null;
-    public $isEditing = false;
-    public $filterCourseId = 'all';
+    public ?int $selectedExamId = null;
+    public bool $isEditing = false;
+    public string $filterCourseId = 'all';
 
     public function mount(): void
     {
@@ -37,7 +37,7 @@ class ExamManager extends Component
         }
     }
 
-    public function updated($property): void
+    public function updated(string $property): void
     {
         if (in_array($property, ['duration_minutes', 'start_time'])) {
             $this->updateEndTime();

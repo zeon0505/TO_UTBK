@@ -16,7 +16,7 @@ class QuestionGenerator extends Component
 {
     use WithFileUploads;
 
-    public $selectedExamId = null;
+    public ?int $selectedExamId = null;
     public string $mode = 'single'; // 'single', 'ai', 'bulk'
 
     // Form Manual Single Question
@@ -84,7 +84,7 @@ class QuestionGenerator extends Component
         }
     }
 
-    public function removeOption($index)
+    public function removeOption(int $index)
     {
         if (count($this->options) > 2) {
             unset($this->options[$index]);
@@ -306,7 +306,7 @@ class QuestionGenerator extends Component
         $this->isGenerating = false;
     }
 
-    public function deleteQuestion($id)
+    public function deleteQuestion(int $id)
     {
         Question::destroy($id);
         session()->flash('success', 'Soal berhasil dihapus!');
